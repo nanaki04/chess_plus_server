@@ -1,5 +1,6 @@
 defmodule ChessPlus.Rock.Duel.Classic do
   alias ChessPlus.Well.Rules
+  alias ChessPlus.Well.Duel
   alias ChessPlus.Well.Duel.Row
   alias ChessPlus.Well.Duel.Column
   alias ChessPlus.Result
@@ -14,7 +15,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
     pieces = build_piece_templates(rules)
     build_tiles()
     <|> fn tiles -> place_pieces(tiles, pieces) end
-    <|> fn tiles -> %{
+    <|> fn tiles -> %Duel{
       duelists: [],
       board: tiles,
       rules: rules

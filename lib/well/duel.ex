@@ -1,4 +1,9 @@
 defmodule ChessPlus.Well.Duel do
+  alias __MODULE__, as: Duel
+
+  @type id :: String.t
+
+  @type territory :: :classic
 
   @type color :: :black | :white
 
@@ -51,11 +56,15 @@ defmodule ChessPlus.Well.Duel do
     }
   }
 
-  @type duel :: %{
+  @type duel :: %Duel{
     duelists: [duelist],
     board: board,
     rules: ChessPlus.Well.Rules.rules
   }
+
+  defstruct duelists: [],
+    board: %{},
+    rules: []
 
   defmodule Row do
     import ChessPlus.Result, only: [retn: 1]

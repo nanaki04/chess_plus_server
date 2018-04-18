@@ -76,6 +76,45 @@ defmodule ChessPlus.Matrix do
     |> Enum.into(%{})
   end
 
+  @spec rows(matrix) :: [row]
+  def rows(matrix) do
+    Map.keys(matrix)
+  end
+
+  @spec columns(matrix) :: [[column]]
+  def columns(matrix) do
+    Map.values(matrix)
+    |> Enum.map(&Map.keys/1)
+  end
+
+  @spec items(matrix) :: [[item]]
+  def items(matrix) do
+    Map.values(matrix)
+    |> Enum.map(&Map.values/1)
+  end
+
+  @spec zip([row], [[column]], [[item]]) :: matrix
+  def zip(rows, columns, items) do
+    Enum.zip(columns, items)
+    |> Enum.map(fn {cols, itms} -> Enum.zip(cols, itms) end)
+    |> (fn cols -> Enum.zip(rows, cols) end).()
+    |> Enum.into(%{})
+  end
+
+  @spec transform(matrix, (row -> row), (column -> column), (item -> item)) :: matrix
+  def transform(matrix, transform_rows, transform_cols, transform_items) do
+    rows = rows(matrix)
+    |> Enum.map(transform_rows)
+
+    cols = columns(matrix)
+    |> Enum.map(fn cols -> Enum.map(cols, transform_cols) end)
+
+    items = items(matrix)
+    |> Enum.map(fn items -> Enum.map(items, transform_items) end)
+
+    zip(rows, cols, items)
+  end
+
   @spec fetch(matrix, row, column) :: result
   def fetch(matrix, row, column) do
     case Map.fetch(matrix, row) do
