@@ -96,7 +96,10 @@ defmodule ChessPlus.Matrix do
   @spec zip([row], [[column]], [[item]]) :: matrix
   def zip(rows, columns, items) do
     Enum.zip(columns, items)
-    |> Enum.map(fn {cols, itms} -> Enum.zip(cols, itms) end)
+    |> Enum.map(fn {cols, itms} ->
+      Enum.zip(cols, itms)
+      |> Enum.into(%{})
+    end)
     |> (fn cols -> Enum.zip(rows, cols) end).()
     |> Enum.into(%{})
   end

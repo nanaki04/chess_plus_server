@@ -1,7 +1,7 @@
 defmodule ChessPlus.Gateway.Udp do
   alias ChessPlus.Dto.Waves, as: WaveDto
   alias ChessPlus.Result
-  alias ChessPlus.Bridge
+  alias ChessPlus.Gateway.Hallway
   import ChessPlus.Result, only: [<|>: 2, ~>>: 2]
 
   use GenServer
@@ -23,26 +23,28 @@ defmodule ChessPlus.Gateway.Udp do
         [WaveDto.imprt(wave)]
     end)
     ~>> fn result -> Result.unwrap(result) end
-    <|> fn waves -> Enum.map(waves, fn wave -> Bridge.cross(wave, %{ip: ip, port: port}) end) end
-    ~>> &Result.unwrap/1)
-    |> Result.orElse(&IO.inspect/1)
+    <|> fn waves -> Hallway.flow(waves, {:udp, %{ip: ip, port: port}}) end)
+    |> Result.warn()
 
     {:noreply, state}
   end
 
-  def handle_call({:send, waves, %{ip: ip, port: port}}, _, state) do
-    {:reply, :gen_udp.send(state, ip, port, waves), state}
+  def handle_call({:send, wave, %{ip: ip, port: port}}, _, state) do
+    {:reply, :gen_udp.send(state, ip, port, wave), state}
   end
 
   def out(waves, players) do
-    ((Enum.map(waves, &WaveDto.export/1)
+    (((Enum.map(waves, &WaveDto.export/1)
     |> Result.unwrap()
     <|> fn dtos -> Enum.map(dtos, &Poison.encode/1) end
     ~>> &Result.unwrap/1)
     <|> fn waves -> Enum.map(players, fn player ->
-       GenServer.call(__MODULE__, {:send, waves, player})
+      Enum.map(waves, fn wave ->
+        GenServer.call(__MODULE__, {:send, wave, player})
+      end)
     end) end)
-    |> Result.orElse(&IO.inspect/1)
+    ~>> &Result.unwrap/1)
+    |> Result.warn()
   end
 
 end

@@ -17,7 +17,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
     <|> fn tiles -> place_pieces(tiles, pieces) end
     <|> fn tiles -> %Duel{
       duelists: [],
-      board: tiles,
+      board: %{ tiles: tiles },
       rules: rules
     } end
   end
@@ -65,7 +65,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
     |> Result.unwrap
 
     case {rows, cols} do
-      {{:ok, rows}, {:ok, cols}} -> {:ok, Matrix.initialize(rows, cols, %{piece: :none, selected_by: :none, conquerable_by: :none})}
+      {{:ok, rows}, {:ok, cols}} -> {:ok, Matrix.initialize(rows, cols, %{piece: :none, selected_by: :none, conquerable_by: :none, color: :black})}
       {{:error, err}, {:ok, _}} -> {:error, err}
       {{:ok, _}, {:error, err}} -> {:error, err}
     end
@@ -75,7 +75,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
         <~> Row.to_num(row)
         <~> Column.to_num(col)
         <|> &%{tile | color: &1})
-        |> Result.orElse(tile)
+        |> Result.or_else(tile)
       end)
     end
   end

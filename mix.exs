@@ -7,7 +7,7 @@ defmodule ChessPlus.MixProject do
       version: "0.1.0",
       elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
     ]
   end
 
@@ -24,6 +24,7 @@ defmodule ChessPlus.MixProject do
     [
       {:dialyxir, "~> 0.5", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.16", only: [:dev], runtime: false},
+      {:map_diff, "~> 1.0", only: [:dev, :test]},
       {:poison, "~> 2.0"},
       {:guardian, git: "https://github.com/nanaki04/Guardian.git"},
       {:life_bloom, git: "https://github.com/nanaki04/LifeBloom.git"},

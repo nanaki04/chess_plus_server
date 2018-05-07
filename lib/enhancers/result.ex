@@ -52,6 +52,21 @@ defmodule ChessPlus.Result do
     end).()
   end
 
+  @spec flatten(result) :: result
+  def flatten({:ok, {:ok, val}}), do: {:ok, val}
+  def flatten({:ok, {:error, err}}), do: {:error, err}
+  def flatten({:error, err}), do: {:error, err}
+
+  @spec flat_map(Enum.t, fun) :: result
+  def flat_map(enumerable, fun) do
+    Enum.reduce(enumerable, {:ok, []}, fn
+      element, acc ->
+        {:ok, &Kernel.++/2}
+        <~> acc
+        <~> fun.(element)
+    end)
+  end
+
   @spec unwrap_matrix(Matrix.matrix) :: result
   def unwrap_matrix(matrix) do
     rows = Matrix.rows(matrix)
@@ -71,13 +86,25 @@ defmodule ChessPlus.Result do
     <~> items
   end
 
-  @spec orElse(result, term) :: term
-  def orElse({:error, _}, default), do: default
-  def orElse({:ok, val}, _), do: val
+  @spec or_else(result, term) :: term
+  def or_else({:error, _}, default), do: default
+  def or_else({:ok, val}, _), do: val
+  def or_else(invalid), do: ChessPlus.Logger.warn(invalid)
 
-  @spec orElseWith(result, fun) :: term
-  def orElseWith({:error, err}, handle), do: handle.(err)
-  def orElseWith({:ok, val}, _), do: val
+  @spec or_else_with(result, fun) :: term
+  def or_else_with({:error, err}, handle), do: handle.(err)
+  def or_else_with({:ok, val}, _), do: val
+  def or_else_with(invalid), do: ChessPlus.Logger.warn(invalid)
+
+  @spec expect(result) :: term
+  def expect({:error, msg}), do: throw msg
+  def expect(ok), do: ok
+
+  def warn({:error, msg}) do
+    ChessPlus.Logger.warn(msg)
+    {:error, msg}
+  end
+  def warn(ok), do: ok
 
   @spec into(result, Collectable.t) :: result
   def into(result, collectable) do

@@ -38,13 +38,13 @@ defmodule ChessPlus.Option do
 
   def option ~>> handle, do: bind(option, handle)
 
-  @spec orElse(option, term) :: term
-  def orElse(:none, default), do: default
-  def orElse({:some, val}, _), do: val
+  @spec or_else(option, term) :: term
+  def or_else(:none, default), do: default
+  def or_else({:some, val}, _), do: val
 
-  @spec orElseWith(option, fun) :: option
-  def orElseWith(:none, handle), do: handle.()
-  def orElseWith(some, _), do: some
+  @spec or_else_with(option, fun) :: option
+  def or_else_with(:none, handle), do: handle.()
+  def or_else_with(some, _), do: some
 
   @spec orFinally(option, fun) :: any
   def orFinally(:none, handle), do: handle.()

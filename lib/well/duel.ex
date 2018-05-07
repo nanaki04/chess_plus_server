@@ -1,7 +1,6 @@
 defmodule ChessPlus.Well.Duel do
+  use ChessPlus.Well
   alias __MODULE__, as: Duel
-
-  @type id :: String.t
 
   @type territory :: :classic
 
@@ -28,7 +27,10 @@ defmodule ChessPlus.Well.Duel do
 
   @type duelist :: %{
     name: String.t,
-    color: color
+    color: color,
+    ip: {number, number, number, number},
+    port: number,
+    tcp_port: port
   }
 
   @type piece :: %{
@@ -50,21 +52,32 @@ defmodule ChessPlus.Well.Duel do
     conquerable_by: {:some, color} | :none
   }
 
-  @type board :: %{
+  @type tiles :: %{
     optional(row) => %{
       optional(column) => tile
     }
   }
 
+  @type board :: %{
+    tiles: tiles
+  }
+
   @type duel :: %Duel{
+    id: String.t,
     duelists: [duelist],
     board: board,
     rules: ChessPlus.Well.Rules.rules
   }
 
-  defstruct duelists: [],
+  defstruct id: "",
+    duelists: [],
     board: %{},
     rules: []
+
+  @impl(Guardian.Secret)
+  def make_initial_state(id) do
+    %Duel{id: id}
+  end
 
   defmodule Row do
     import ChessPlus.Result, only: [retn: 1]
@@ -120,6 +133,28 @@ defmodule ChessPlus.Well.Duel do
     def from_num(7), do: :g |> retn
     def from_num(8), do: :h |> retn
     def from_num(x), do: {:error, "No column found while attempting to convert from number: " <> x}
+  end
+
+  defmodule Duelist do
+    alias ChessPlus.Well.Player
+
+    @type duelist :: ChessPlus.Well.Duel.duelist
+    @type color :: ChessPlus.Well.Duel.color
+
+    @spec from_player(Player.player) :: duelist
+    def from_player(%{name: name, ip: ip, port: port, tcp_port: tcp_port}) do
+      %{name: name, ip: ip, port: port, tcp_port: tcp_port, color: :black}
+    end
+
+    @spec to_player(duelist) :: Player.player
+    def to_player(%{name: name, ip: ip, port: port, tcp_port: tcp_port}) do
+      %Player{name: name, ip: ip, port: port, tcp_port: tcp_port}
+    end
+
+    @spec with_color(duelist, color) :: duelist
+    def with_color(duelist, color) do
+      %{duelist | color: color}
+    end
   end
 
 end

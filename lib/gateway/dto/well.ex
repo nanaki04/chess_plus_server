@@ -47,10 +47,10 @@ defmodule ChessPlus.Dto.Well do
   defmodule Row do
     @type dto :: term
     @spec export(WellDuel.row) :: Result.result
-    def export(row), do: WellDuel.Row.to_num(row)
+    def export(row), do: WellDuel.Row.to_num(row) <|> (&to_string/1)
 
     @spec imprt(dto) :: Result.result
-    def imprt(row), do: WellDuel.Row.from_num(row)
+    def imprt(row), do: Integer.parse(row) |> elem(0) |> WellDuel.Row.from_num()
   end
 
   defmodule Column do
@@ -492,25 +492,27 @@ defmodule ChessPlus.Dto.Well do
 
     @type dto :: term
     @spec export(WellDuel.board) :: Result.result
-    def export(board) do
+    def export(%{tiles: tiles}) do
       Matrix.transform(
-        board,
+        tiles,
         &Row.export/1,
         &Column.export/1,
         &Tile.export/1
       )
       |> Result.unwrap_matrix()
+      <|> fn tiles -> %{"Tiles" => tiles} end
     end
 
     @spec imprt(dto) :: Result.result
-    def imprt(board) do
+    def imprt(%{"Tiles" => tiles}) do
       Matrix.transform(
-        board,
+        tiles,
         &Row.imprt/1,
         &Column.imprt/1,
         &Tile.imprt/1
       )
       |> Result.unwrap_matrix()
+      <|> fn tiles -> %{ tiles: tiles } end
     end
   end
 
@@ -521,7 +523,7 @@ defmodule ChessPlus.Dto.Well do
       {:ok, &%{"Duelists" => &1, "Board" => &2, "Rules" => &3}}
       <~> (Enum.map(duelists, &Duelist.export/1) |> Result.unwrap())
       <~> Board.export(board)
-      <~> (Enum.map(rules, fn {idx, rule} -> Rule.export(rule) <|> &{idx, &1} end)
+      <~> (Enum.map(rules, fn {idx, rule} -> Rule.export(rule) <|> &{to_string(idx), &1} end)
         |> Result.unwrap()
         |> Result.into(%{}))
     end
@@ -532,7 +534,7 @@ defmodule ChessPlus.Dto.Well do
       {:ok, &%WellDuel{duelists: &1, board: &2, rules: &3}}
       <~> (Enum.map(duelists, &Duelist.imprt/1) |> Result.unwrap())
       <~> Board.imprt(board)
-      <~> (Enum.map(rules, fn {idx, rule} -> Rule.imprt(rule) <|> &{idx, &1} end)
+      <~> (Enum.map(rules, fn {idx, rule} -> Rule.imprt(rule) <|> &{Integer.parse(idx) |> elem(0), &1} end)
         |> Result.unwrap()
         |> Result.into(%{}))
     end

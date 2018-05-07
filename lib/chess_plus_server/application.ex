@@ -10,7 +10,10 @@ defmodule ChessPlus.Application do
     children = [
       # Starts a worker by calling: ChessPlus.Worker.start_link(arg)
       # {ChessPlus.Worker, arg},
-      ChessPlus.Gateway.Udp
+      ChessPlus.Gateway.Udp,
+      ChessPlus.Gateway.Tcp,
+      ChessPlus.Well.PlayerRegistry,
+      {Task.Supervisor, name: ChessPlus.Task.Supervisor}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
