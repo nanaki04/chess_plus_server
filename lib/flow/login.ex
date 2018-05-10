@@ -6,7 +6,7 @@ defmodule ChessPlus.Flow.Login do
 
   @spec invoke_logged_in(Player.player, receiver) :: wave_downstream
   def invoke_logged_in(player, receiver) do
-    {:udp, receiver, {{:player, :add}, player}}
+    {:tcp, receiver, {{:player, :add}, player}}
   end
 
   @spec invoke_created(Player.player, receiver) :: wave_downstream
@@ -21,7 +21,8 @@ defmodule ChessPlus.Flow.Login do
       p |
       name: name,
       ip: ip,
-      port: port
+      port: port,
+      id: name
     } end)
     |> (&[invoke_created(&1, &1)]).()
     |> Result.retn()
@@ -32,7 +33,8 @@ defmodule ChessPlus.Flow.Login do
     Player.update(name, fn p -> %Player{
       p |
       name: name,
-      tcp_port: port
+      tcp_port: port,
+      id: name
     } end)
     |> (&[invoke_logged_in(&1, &1)]).()
     |> Result.retn()

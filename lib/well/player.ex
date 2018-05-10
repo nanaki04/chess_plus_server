@@ -2,17 +2,23 @@ defmodule ChessPlus.Well.Player do
   use ChessPlus.Well
   alias __MODULE__, as: Player
 
+  @type duel_id :: :none | {:some, String.t}
+
   @type player :: %Player{
     name: String.t,
     ip: {number, number, number, number},
     port: number,
-    tcp_port: port
+    tcp_port: port,
+    id: String.t,
+    duel: duel_id
   }
 
   defstruct name: "",
     ip: nil,
     port: 0,
-    tcp_port: nil
+    tcp_port: nil,
+    id: "",
+    duel: :none
 
   @impl(Guardian.Secret)
   def make_initial_state(id) do

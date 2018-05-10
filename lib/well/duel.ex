@@ -1,5 +1,7 @@
 defmodule ChessPlus.Well.Duel do
   use ChessPlus.Well
+  alias ChessPlus.Matrix
+  alias ChessPlus.Result
   alias __MODULE__, as: Duel
 
   @type territory :: :classic
@@ -156,5 +158,86 @@ defmodule ChessPlus.Well.Duel do
       %{duelist | color: color}
     end
   end
+
+  def update_duel(%{duel: {:some, id}}, update) do
+    {:ok, Duel.update(id, update)}
+  end
+
+  def update_duel(_), do: {:error, "Player not joined a duel"}
+
+  def update_board(%{duel: {:some, _}} = sender, update) do
+    update_duel(sender, fn duel -> %{duel | board: update.(duel.board)} end)
+  end
+
+  def update_board(%Duel{id: id, board: board}, update) do
+    Duel.update(id, &%{&1 | board: update.(board)})
+  end
+
+  @spec update_tile(sender | duel, coordinate, (tile -> tile)) :: Result.result
+  def update_tile(%{duel: {:some, _}} = sender, {row, col}, update) do
+    update_board(sender, fn board ->
+      %{board | tiles: Matrix.update(board.tiles, row, col, update)}
+    end)
+  end
+
+  def update_tile(%Duel{id: _} = duel, {row, col}, update) do
+    update_board(duel, fn board -> %{board | tiles: Matrix.update(board.tiles, row, col, update)} end)
+  end
+
+  def update_tile_where(%{duel: {:some, _}} = sender, predicate, update) do
+    update_board(sender, fn board ->
+      %{board | tiles: Matrix.update_where(board.tiles, predicate, update)}
+    end)
+  end
+
+  def update_tile_where(%Duel{id: _} = duel, predicate, update) do
+    update_board(duel, fn board ->
+      %{board | tiles: Matrix.update_where(board.tiles, predicate, update)}
+    end)
+  end
+
+  def map_duelists(%{duel: {:some, id}}, update) do
+    map_duelists(Duel.fetch(id), update)
+  end
+
+  def map_duelists(duel, update) do
+    Enum.map(duel.duelists, update)
+  end
+
+  def map_opponent(%{duel: {:some, id}} = sender, update) do
+    map_opponent(Duel.fetch(id), update, sender)
+  end
+
+  def map_opponent(duel, update, sender) do
+    Enum.filter(duel.duelists, fn %{name: name} -> name != sender.name end)
+    |> Enum.map(update)
+  end
+
+  def map_player(%{duel: {:some, id}} = sender, update) do
+    map_player(Duel.fetch(id), update, sender)
+  end
+
+  def map_player(x, y) do
+    ChessPlus.Logger.log x
+    ChessPlus.Logger.log y
+  end
+
+  def map_player(duel, update, sender) do
+    ChessPlus.Logger.log "map_player"
+    ChessPlus.Logger.log duel.duelists
+    Enum.find(duel.duelists, fn %{name: name} -> name == sender.name end)
+    |> update.()
+  end
+
+  def is_player?(%{duel: {:some, id}} = player, color) do
+    Duel.fetch(id)
+    |> is_player?(color, player)
+  end
+
+  def is_player?(duel, color, sender) do
+    map_player(duel, fn player -> player.color == color end, sender)
+  end
+
+  def tst(), do: true
 
 end

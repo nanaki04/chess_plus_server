@@ -30,6 +30,7 @@ defmodule ChessPlus.Gateway.Udp do
   end
 
   def handle_call({:send, wave, %{ip: ip, port: port}}, _, state) do
+    ChessPlus.Logger.log(wave)
     {:reply, :gen_udp.send(state, ip, port, wave), state}
   end
 

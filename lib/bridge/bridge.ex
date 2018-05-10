@@ -11,8 +11,19 @@ defmodule ChessPlus.Bridge do
   footprint :player,
     join: {:self, Flow.Login, :flow, []},
     remove: {:self, Flow.Logout, :flow, []}
-  footprint :duel, new: {:self, Flow.InitiateDuel, :flow, []}
-  footprint :duelist, join: {:self, Flow.ChallengeDuel, :flow, []} 
+
+  footprint :duel,
+    new: {:self, Flow.InitiateDuel, :flow, []}
+
+  footprint :duelist,
+    join: {:self, Flow.ChallengeDuel, :flow, []}
+
+  footprint :tile,
+    select: {:self, Flow.SelectTile, :flow, []},
+    deselect: {:self, Flow.DeselectTile, :flow, []}
+
+  footprint :piece,
+    move: {:self, Flow.MovePiece, :flow, []}
 
   def cross({{domain, invocation}, _} = wave, sender) do
     __MODULE__.follow(domain, invocation, [wave, sender])

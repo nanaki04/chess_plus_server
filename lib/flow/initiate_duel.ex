@@ -12,10 +12,11 @@ defmodule ChessPlus.Flow.InitiateDuel do
 
   @spec flow(wave, sender) :: Result.result
   def flow({{:duel, :new}, %{map: map}}, sender) do
-    ChessPlus.Logger.log(sender)
+    id = make_id(sender)
+    Player.update(sender.id, fn p -> %{p | duel: {:some, id}} end)
     ChessPlus.Rocks.Territories.retrieve(map)
     <|> fn duel ->
-      Duel.update(make_id(sender), fn %{id: id} ->
+      Duel.update(id, fn %{id: id} ->
         %{duel | id: id, duelists: [Duel.Duelist.from_player(sender) |> Duel.Duelist.with_color(:white)]}
       end)
     end

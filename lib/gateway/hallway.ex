@@ -26,7 +26,11 @@ defmodule ChessPlus.Gateway.Hallway do
     |> Result.warn()
   end
 
-  defp downstream({:error, error}, sender) do
+  defp downstream({:error, error}, {:udp, sender}) do
     Udp.out([{{:global, :error}, error}], [sender])
+  end
+
+  defp downstream({:error, error}, {:tcp, sender}) do
+    Tcp.out([{{:global, :error}, error}], [sender])
   end
 end

@@ -50,7 +50,8 @@ defmodule ChessPlus.Dto.Well do
     def export(row), do: WellDuel.Row.to_num(row) <|> (&to_string/1)
 
     @spec imprt(dto) :: Result.result
-    def imprt(row), do: Integer.parse(row) |> elem(0) |> WellDuel.Row.from_num()
+    def imprt(row) when is_number(row), do: WellDuel.Row.from_num(row)
+    def imprt(row) when is_binary(row), do: Integer.parse(row) |> elem(0) |> WellDuel.Row.from_num()
   end
 
   defmodule Column do

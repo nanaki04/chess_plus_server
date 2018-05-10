@@ -1,15 +1,32 @@
 defmodule ChessPlus.Flow.ChallengeDuel do
   use ChessPlus.Wave
   alias ChessPlus.Well.Duel
+  alias ChessPlus.Well.Player
   alias ChessPlus.Result
+  import ChessPlus.Result, only: [<|>: 2]
 
-  @spec invoke(Duel.duel, receiver) :: wave_downstream
-  def invoke(%{duelists: _} = amplitude, receiver) do
-    {:udp, receiver, {{:duelist, :add}, amplitude}}
+  @spec invoke(Duel.duelist, receiver) :: wave_downstream
+  def invoke(duelist, receiver) do
+    {:udp, receiver, {{:duelist, :add}, %{duelist: duelist}}}
   end
 
   @spec flow(wave, sender) :: Result.result
-  def flow({{:duelist, :join}, %{player: player, id: id}}, _) do
+  def flow({{:duelist, :join}, %{id: id}}, sender) do
+    verify_duel(id)
+    <|> fn id -> join_duel(id, sender) end
+  end
+  def flow(_), do: {:error, "Failed to parse ChallengeDuel wave"}
+
+  defp verify_duel(id) do
+    if Duel.active?(id) do
+      {:ok, id}
+    else
+      {:error, "Duel does not exist"}
+    end
+  end
+
+  defp join_duel(id, player) do
+    Player.update(player.id, fn p -> %{p | duel: {:some, id}} end)
     duelist = Duel.Duelist.from_player(player)
     duel = Duel.update(id, fn
       %{duelists: []} = duel ->
@@ -24,6 +41,5 @@ defmodule ChessPlus.Flow.ChallengeDuel do
     end
     |> Result.retn()
   end
-  def flow(_), do: {:error, "Failed to parse ChallengeDuel wave"}
 
 end

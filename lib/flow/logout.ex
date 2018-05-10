@@ -8,7 +8,7 @@ defmodule ChessPlus.Flow.Logout do
   def flow({:player, :remove}, %{name: name} = player) do
     :ok = clear_registry_tcp(player)
     :ok = clear_registry_udp(player)
-    :ok = Player.stop_gracefully(name)
+    :ok = Player.stop_gracefully(name, true)
     {:ok, []}
   end
 
