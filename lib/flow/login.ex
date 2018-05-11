@@ -14,9 +14,13 @@ defmodule ChessPlus.Flow.Login do
     {:udp, receiver, {{:player, :created}, player}}
   end
 
+  # MEMO: udp arrives first
   @spec flow(wave, sender) :: Result.result
   def flow({{:player, :join}, %{name: name}}, {:udp, %{ip: ip, port: port}} = sender) do
+    name = if Player.active?(name), do: add_name_counter(name), else: name
+
     PlayerRegistry.start_child(make_id(sender), name)
+
     Player.update(name, fn p -> %Player{
       p |
       name: name,
@@ -48,6 +52,30 @@ defmodule ChessPlus.Flow.Login do
     ip = Enum.map([n1, n2, n3, n4], &to_string/1)
     |> Enum.join(".")
     ip <> ":" <> to_string(port)
+  end
+
+  @doc """
+  ## Examples
+
+    iex> import ChessPlus.Flow.Login
+    ...> add_name_counter("Sheep")
+    "Sheep(1)"
+    ...> add_name_counter("Sheep(1)")
+    "Sheep(2)"
+
+  """
+  def add_name_counter(name) do
+    case Regex.match?(~r/.+\(\d\)(?=$)/, name) do
+      false ->
+        name <> "(1)"
+      true ->
+        Regex.replace(~r/\d(?=\)$)/, name, fn x ->
+          Integer.parse(x)
+          |> elem(0)
+          |> Kernel.+(1)
+          |> to_string()
+        end)
+    end
   end
 
 end
