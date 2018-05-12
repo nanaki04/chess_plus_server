@@ -28,6 +28,10 @@ defmodule ChessPlus.Dto.Waves do
     <~> Well.Territory.imprt(map)
   end
 
+  def imprt(%{"Location" => %{"Domain" => "open_duels", "Invocation" => "all"}}) do
+    {:ok, {:open_duels, :all}}
+  end
+
   def imprt(%{"Location" => %{"Domain" => "duelist", "Invocation" => "join"}, "ID" => id}) do
     {:ok, &{{:duelist, :join}, %{id: &1}}}
     <~> {:ok, id}
@@ -74,6 +78,12 @@ defmodule ChessPlus.Dto.Waves do
     {:ok, &%{"Location" => &1, "Duel" => &2}}
     <~> export_location(location)
     <~> Well.Duel.export(amplitude)
+  end
+
+  def export({{:open_duels, :add} = location, amplitude}) do
+    {:ok, &%{"Location" => &1, "Duels" => &2}}
+    <~> export_location(location)
+    <~> {:ok, amplitude.duels}
   end
 
   def export({{:duelist, :add} = location, amplitude}) do

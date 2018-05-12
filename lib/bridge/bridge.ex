@@ -5,6 +5,7 @@ defmodule ChessPlus.Bridge do
 
   gatekeeper ChessPlus.Logger.Bridge
   gatekeeper ChessPlus.Bridge.PlayerFinder
+  gatekeeper ChessPlus.ObserverRegistry
 
   footprints __MODULE__
 
@@ -13,10 +14,13 @@ defmodule ChessPlus.Bridge do
     remove: {:self, Flow.Logout, :flow, []}
 
   footprint :duel,
-    new: {:self, Flow.InitiateDuel, :flow, []}
+    new: {:self, Flow.Duel.New, :flow, []}
+
+  footprint :open_duels,
+    all: {:self, Flow.FindOpenDuels, :flow, []}
 
   footprint :duelist,
-    join: {:self, Flow.ChallengeDuel, :flow, []}
+    join: {:self, Flow.Duel.Join, :flow, []}
 
   footprint :tile,
     select: {:self, Flow.SelectTile, :flow, []},

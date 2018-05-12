@@ -1,57 +1,42 @@
 defmodule ChessPlus.Flow.Login do
   use ChessPlus.Wave
   alias ChessPlus.Well.Player
-  alias ChessPlus.Well.PlayerRegistry
   alias ChessPlus.Result
 
-  @spec invoke_logged_in(Player.player, receiver) :: wave_downstream
-  def invoke_logged_in(player, receiver) do
-    {:tcp, receiver, {{:player, :add}, player}}
-  end
-
-  @spec invoke_created(Player.player, receiver) :: wave_downstream
-  def invoke_created(player, receiver) do
-    {:udp, receiver, {{:player, :created}, player}}
-  end
-
   # MEMO: udp arrives first
-  @spec flow(wave, sender) :: Result.result
+  @impl(ChessPlus.Wave)
   def flow({{:player, :join}, %{name: name}}, {:udp, %{ip: ip, port: port}} = sender) do
     name = if Player.active?(name), do: add_name_counter(name), else: name
 
-    PlayerRegistry.start_child(make_id(sender), name)
-
-    Player.update(name, fn p -> %Player{
+    player = Player.update(name, fn p -> %Player{
       p |
       name: name,
       ip: ip,
       port: port,
       id: name
     } end)
-    |> (&[invoke_created(&1, &1)]).()
-    |> Result.retn()
+
+    {:ok, [
+      {:udp, player, {{:player, :created}, player}}
+    ]}
   end
 
   def flow({{:player, :join}, %{name: name}}, {:tcp, %{port: port}}) do
-    PlayerRegistry.start_child(port, name)
-    Player.update(name, fn p -> %Player{
+    player = Player.update(name, fn p -> %Player{
       p |
       name: name,
       tcp_port: port,
       id: name
     } end)
-    |> (&[invoke_logged_in(&1, &1)]).()
-    |> Result.retn()
+
+    {:ok, [
+      {:event, player, {{:event, :player_created}, player}},
+      {:tcp, player, {{:player, :add}, player}}
+    ]}
   end
 
   def flow({{:player, :join}, _}, %Player{} = player) do
-    {:ok, [invoke_logged_in(player, player)]}
-  end
-
-  def make_id({:udp, %{ip: {n1, n2, n3, n4} = ip, port: port}}) do
-    ip = Enum.map([n1, n2, n3, n4], &to_string/1)
-    |> Enum.join(".")
-    ip <> ":" <> to_string(port)
+    {:error, "Already logged in"}
   end
 
   @doc """
@@ -64,6 +49,7 @@ defmodule ChessPlus.Flow.Login do
     "Sheep(2)"
 
   """
+  @spec add_name_counter(String.t) :: String.t
   def add_name_counter(name) do
     case Regex.match?(~r/.+\(\d\)(?=$)/, name) do
       false ->
