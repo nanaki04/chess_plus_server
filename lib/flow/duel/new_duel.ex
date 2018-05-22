@@ -10,7 +10,7 @@ defmodule ChessPlus.Flow.Duel.New do
     duelist = Duel.Duelist.from_player(sender)
     |> Duel.Duelist.with_color(:white)
 
-    duel = Duel.update(sender.id, fn %{id: id} -> %Duel{
+    duel = Duel.update!(sender.id, fn %{id: id} -> %Duel{
       duel |
       id: id,
       duelists: [duelist]

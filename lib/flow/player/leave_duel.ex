@@ -3,8 +3,8 @@ defmodule ChessPlus.Flow.Player.LeaveDuel do
   alias ChessPlus.Well.Player
 
   @impl(ChessPlus.Wave)
-  def flow({{:event, :duel_left}, id}, player) do
-    Player.update(player.id, fn p -> %Player{
+  def flow({{:event, :duel_left}, _}, player) do
+    Player.update!(player.id, fn p -> %Player{
       p |
       duel: :none
     } end)

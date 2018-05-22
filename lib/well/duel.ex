@@ -160,7 +160,7 @@ defmodule ChessPlus.Well.Duel do
   end
 
   def update_duel(%{duel: {:some, id}}, update) do
-    {:ok, Duel.update(id, update)}
+    {:ok, Duel.update!(id, update)}
   end
 
   def update_duel(_), do: {:error, "Player not joined a duel"}
@@ -170,7 +170,7 @@ defmodule ChessPlus.Well.Duel do
   end
 
   def update_board(%Duel{id: id, board: board}, update) do
-    Duel.update(id, &%{&1 | board: update.(board)})
+    Duel.update!(id, &%{&1 | board: update.(board)})
   end
 
   @spec update_tile(sender | duel, coordinate, (tile -> tile)) :: Result.result
@@ -217,14 +217,7 @@ defmodule ChessPlus.Well.Duel do
     map_player(Duel.fetch(id), update, sender)
   end
 
-  def map_player(x, y) do
-    ChessPlus.Logger.log x
-    ChessPlus.Logger.log y
-  end
-
   def map_player(duel, update, sender) do
-    ChessPlus.Logger.log "map_player"
-    ChessPlus.Logger.log duel.duelists
     Enum.find(duel.duelists, fn %{name: name} -> name == sender.name end)
     |> update.()
   end
@@ -237,7 +230,5 @@ defmodule ChessPlus.Well.Duel do
   def is_player?(duel, color, sender) do
     map_player(duel, fn player -> player.color == color end, sender)
   end
-
-  def tst(), do: true
 
 end

@@ -3,8 +3,8 @@ defmodule ChessPlus.Flow.OpenDuelRegistry.RegisterDuel do
   alias ChessPlus.Well.OpenDuelRegistry
 
   @impl(ChessPlus.Wave)
-  def flow({{:event, :duel_created}, id}, _) do
-    OpenDuelRegistry.register(id)
+  def flow({{:event, :duel_created}, duel}, _) do
+    OpenDuelRegistry.register(duel.id)
 
     {:ok, []}
   end

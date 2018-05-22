@@ -8,7 +8,7 @@ defmodule ChessPlus.Flow.Login do
   def flow({{:player, :join}, %{name: name}}, {:udp, %{ip: ip, port: port}} = sender) do
     name = if Player.active?(name), do: add_name_counter(name), else: name
 
-    player = Player.update(name, fn p -> %Player{
+    player = Player.update!(name, fn p -> %Player{
       p |
       name: name,
       ip: ip,
@@ -22,7 +22,7 @@ defmodule ChessPlus.Flow.Login do
   end
 
   def flow({{:player, :join}, %{name: name}}, {:tcp, %{port: port}}) do
-    player = Player.update(name, fn p -> %Player{
+    player = Player.update!(name, fn p -> %Player{
       p |
       name: name,
       tcp_port: port,

@@ -12,12 +12,12 @@ defmodule ChessPlus.Well.OpenDuelRegistry do
 
   @spec register(String.t) :: t
   def register(id) do
-    update(@id, fn %{registry: r} -> %{registry: MapSet.put(r, id)} end)
+    update!(@id, fn %{registry: r} -> %{registry: MapSet.put(r, id)} end)
   end
 
   @spec unregister(String.t) :: t
   def unregister(id) do
-    update(@id, fn %{registry: r} -> %{registry: MapSet.delete(r, id)} end)
+    update!(@id, fn %{registry: r} -> %{registry: MapSet.delete(r, id)} end)
   end
 
   @spec all() :: [String.t]

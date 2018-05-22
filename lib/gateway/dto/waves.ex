@@ -59,7 +59,7 @@ defmodule ChessPlus.Dto.Waves do
   end
 
   def imprt(%{"Location" => %{"Domain" => d, "Invocation" => i}}), do: {:error, "Failed to import Wave: " <> d <> " : " <> i}
-  def imprt(_), do: {:error, "Failed to import Wave"}
+  def imprt(w), do: {:error, "Failed to import Wave: " <> Poison.encode!(w)}
 
   @spec export(ChessPlus.Wave.wave) :: Result.result
   def export({{:player, :add} = location, amplitude}) do
