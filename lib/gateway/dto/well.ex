@@ -24,10 +24,12 @@ defmodule ChessPlus.Dto.Well do
     @type dto :: term
     @spec export(WellDuel.territory) :: Result.result
     def export(:classic), do: {:ok, "Classic"}
+    def export(:debug), do: {:ok, "Debug"}
     def export(_), do: {:error, "Failed to export Territory"}
 
     @spec imprt(dto) :: Result.result
     def imprt("Classic"), do: {:ok, :classic}
+    def imprt("Debug"), do: {:ok, :debug}
     def imprt(_), do: {:error, "Failed to import Territory"}
   end
 
@@ -65,6 +67,10 @@ defmodule ChessPlus.Dto.Well do
     def export(:f), do: {:ok, "F"}
     def export(:g), do: {:ok, "G"}
     def export(:h), do: {:ok, "H"}
+    def export(:i), do: {:ok, "I"}
+    def export(:j), do: {:ok, "J"}
+    def export(:k), do: {:ok, "K"}
+    def export(:l), do: {:ok, "L"}
     def export(_), do: {:error, "Failed to export Column"}
 
     @spec imprt(dto) :: Result.result
@@ -76,6 +82,10 @@ defmodule ChessPlus.Dto.Well do
     def imprt("F"), do: {:ok, :f}
     def imprt("G"), do: {:ok, :g}
     def imprt("H"), do: {:ok, :h}
+    def imprt("I"), do: {:ok, :i}
+    def imprt("J"), do: {:ok, :j}
+    def imprt("K"), do: {:ok, :k}
+    def imprt("L"), do: {:ok, :l}
     def imprt(_), do: {:error, "Failed to import Column"}
   end
 

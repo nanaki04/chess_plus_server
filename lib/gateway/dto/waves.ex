@@ -113,6 +113,14 @@ defmodule ChessPlus.Dto.Waves do
     <~> Well.Coordinate.export(amplitude.to)
   end
 
+  def export({{:piece, :conquer} = location, amplitude}) do
+    {:ok, &%{"Location" => &1, "Piece" => &2, "From" => &3, "To" => &4}}
+    <~> export_location(location)
+    <~> Well.Piece.export(amplitude.piece)
+    <~> Well.Coordinate.export(amplitude.from)
+    <~> Well.Coordinate.export(amplitude.to)
+  end
+
   def export({{:global, :error} = location, amplitude}) do
     {:ok, &%{"Location" => &1, "Reason" => &2}}
     <~> export_location(location)
