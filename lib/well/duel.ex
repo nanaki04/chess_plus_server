@@ -5,6 +5,7 @@ defmodule ChessPlus.Well.Duel do
   alias __MODULE__, as: Duel
 
   @type territory :: :classic
+    | :debug
 
   @type color :: :black | :white
 
@@ -16,6 +17,10 @@ defmodule ChessPlus.Well.Duel do
     | :six
     | :seven
     | :eight
+    | :nine
+    | :ten
+    | :eleven
+    | :twelve
 
   @type column :: :b
     | :b
@@ -24,6 +29,11 @@ defmodule ChessPlus.Well.Duel do
     | :e
     | :f
     | :g
+    | :h
+    | :i
+    | :j
+    | :k
+    | :l
 
   @type coordinate :: {row, column}
 
@@ -95,6 +105,10 @@ defmodule ChessPlus.Well.Duel do
     def to_num(:six), do: 6 |> retn
     def to_num(:seven), do: 7 |> retn
     def to_num(:eight), do: 8 |> retn
+    def to_num(:nine), do: 9 |> retn
+    def to_num(:ten), do: 10 |> retn
+    def to_num(:eleven), do: 11 |> retn
+    def to_num(:twelve), do: 12 |> retn
     def to_num(x), do: {:error, "Column not found while attempting to convert to number: " <> Atom.to_string(x)}
 
     @spec from_num(number) :: result
@@ -106,6 +120,10 @@ defmodule ChessPlus.Well.Duel do
     def from_num(6), do: :six |> retn
     def from_num(7), do: :seven |> retn
     def from_num(8), do: :eight |> retn
+    def from_num(9), do: :nine |> retn
+    def from_num(10), do: :ten |> retn
+    def from_num(11), do: :eleven |> retn
+    def from_num(12), do: :twelve |> retn
     def from_num(x), do: {:error, "Column not found while attempting to convert to number: " <> x}
   end
 
@@ -123,6 +141,10 @@ defmodule ChessPlus.Well.Duel do
     def to_num(:f), do: 6 |> retn
     def to_num(:g), do: 7 |> retn
     def to_num(:h), do: 8 |> retn
+    def to_num(:i), do: 9 |> retn
+    def to_num(:j), do: 10 |> retn
+    def to_num(:k), do: 11 |> retn
+    def to_num(:l), do: 12 |> retn
     def to_num(x), do: {:error, "Column not found while attempting to convert to number: " <> Atom.to_string(x)}
 
     @spec from_num(number) :: result
@@ -134,6 +156,10 @@ defmodule ChessPlus.Well.Duel do
     def from_num(6), do: :f |> retn
     def from_num(7), do: :g |> retn
     def from_num(8), do: :h |> retn
+    def from_num(9), do: :i |> retn
+    def from_num(10), do: :j |> retn
+    def from_num(11), do: :k |> retn
+    def from_num(12), do: :l |> retn
     def from_num(x), do: {:error, "No column found while attempting to convert from number: " <> x}
   end
 
@@ -160,7 +186,7 @@ defmodule ChessPlus.Well.Duel do
   end
 
   def update_duel(%{duel: {:some, id}}, update) do
-    {:ok, Duel.update(id, update)}
+    {:ok, Duel.update!(id, update)}
   end
 
   def update_duel(_), do: {:error, "Player not joined a duel"}
@@ -170,7 +196,7 @@ defmodule ChessPlus.Well.Duel do
   end
 
   def update_board(%Duel{id: id, board: board}, update) do
-    Duel.update(id, &%{&1 | board: update.(board)})
+    Duel.update!(id, &%{&1 | board: update.(board)})
   end
 
   @spec update_tile(sender | duel, coordinate, (tile -> tile)) :: Result.result
@@ -217,14 +243,7 @@ defmodule ChessPlus.Well.Duel do
     map_player(Duel.fetch(id), update, sender)
   end
 
-  def map_player(x, y) do
-    ChessPlus.Logger.log x
-    ChessPlus.Logger.log y
-  end
-
   def map_player(duel, update, sender) do
-    ChessPlus.Logger.log "map_player"
-    ChessPlus.Logger.log duel.duelists
     Enum.find(duel.duelists, fn %{name: name} -> name == sender.name end)
     |> update.()
   end
@@ -237,7 +256,5 @@ defmodule ChessPlus.Well.Duel do
   def is_player?(duel, color, sender) do
     map_player(duel, fn player -> player.color == color end, sender)
   end
-
-  def tst(), do: true
 
 end

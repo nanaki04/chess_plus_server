@@ -20,6 +20,7 @@ defmodule ChessPlus.Gateway.Hallway do
     Enum.map(waves, fn
       {:udp, player, wave} -> Udp.out([wave], [player])
       {:tcp, player, wave} -> Tcp.out([wave], [player])
+      {:event, player, wave} -> flow([wave], player)
       error -> {:error, "Invalid output"}
     end)
     |> Result.unwrap()

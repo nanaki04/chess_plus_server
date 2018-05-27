@@ -1,6 +1,6 @@
 defmodule ChessPlus.Well.PlayerRegistry do
-
   use DynamicSupervisor
+  alias ChessPlus.Result
 
   def start_link(_) do
     DynamicSupervisor.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -17,14 +17,18 @@ defmodule ChessPlus.Well.PlayerRegistry do
         # TODO proper login system
         Agent.update(pid, fn _ -> player_id end)
     end
+    # TODO proper error handling
+    |> Result.retn()
   end
 
-  @spec terminate_child(term) :: :ok
+  @spec terminate_child(term) :: Result.result
   def terminate_child(id) do
     case GenServer.whereis({:global, id}) do
       nil -> :ok
       pid -> DynamicSupervisor.terminate_child(__MODULE__, pid)
     end
+    # TODO proper error handling
+    |> Result.retn()
   end
 
   def get({:udp, %{ip: {n1, n2, n3, n4}, port: port}}) do

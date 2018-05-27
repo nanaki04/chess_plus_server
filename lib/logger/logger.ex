@@ -29,7 +29,7 @@ defmodule ChessPlus.Logger do
   def warn(state, :prod), do: state
 
   def warn(state, _) when is_binary(state) do
-    IO.inspect(IO.ANSI.red <> state <> IO.ANSI.reset, label: IO.ANSI.red <> "Warning" <> IO.ANSI.reset)
+    IO.inspect(state, label: IO.ANSI.red <> "Warning" <> IO.ANSI.reset)
   end
 
   def warn(state, _) do

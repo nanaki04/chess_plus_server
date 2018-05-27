@@ -8,6 +8,9 @@ defmodule ChessPlus.Wave do
   @type wave :: {{atom, atom}, term}
   | {atom, atom}
   @type wave_downstream :: {socket_type, receiver, wave}
+  | {:event, sender, wave}
+
+  @callback flow(wave, sender) :: ChessPlus.Result.result
 
   defmacro __using__(_) do
     quote do
@@ -19,6 +22,13 @@ defmodule ChessPlus.Wave do
       @type wave :: {{atom, atom}, term}
       | {atom, atom}
       @type wave_downstream :: {socket_type, receiver, wave}
+      | {:event, sender, wave}
+
+      @behaviour ChessPlus.Wave
+
+      def flow(_, _), do: {:error, "Flow not implemented for wave"}
+
+      defoverridable [flow: 2]
     end
   end
 

@@ -25,3 +25,5 @@ chess_plus_server-*.tar
 *.swp
 
 *tags
+
+*log.json
