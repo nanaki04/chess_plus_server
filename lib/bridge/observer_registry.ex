@@ -6,7 +6,8 @@ defmodule ChessPlus.ObserverRegistry do
       ChessPlus.Flow.PlayerRegistry.RegisterPlayer
     ],
     player_deleted: [
-      ChessPlus.Flow.PlayerRegistry.UnregisterPlayer
+      ChessPlus.Flow.PlayerRegistry.UnregisterPlayer,
+      ChessPlus.Flow.Duel.LeaveDuel
     ],
     duel_created: [
       ChessPlus.Flow.OpenDuelRegistry.RegisterDuel
@@ -16,6 +17,9 @@ defmodule ChessPlus.ObserverRegistry do
     ],
     duel_left: [
       ChessPlus.Flow.Player.LeaveDuel
+    ],
+    duel_deleted: [
+      ChessPlus.Flow.OpenDuelRegistry.UnregisterDuel
     ]
   ]
 end
