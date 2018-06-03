@@ -1,7 +1,6 @@
 defmodule ChessPlus.Flow.Duel.LeaveDuel do
   use ChessPlus.Wave
   alias ChessPlus.Well.Duel
-  alias ChessPlus.Option
   alias ChessPlus.Result
 
   @spec flow(wave, sender) :: Result.result

@@ -1,7 +1,6 @@
 defmodule ChessPlus.Flow.Logout do
   use ChessPlus.Wave
   alias ChessPlus.Well.Player
-  alias ChessPlus.Well.PlayerRegistry
   alias ChessPlus.Result
 
   @spec flow(wave, sender) :: Result.result

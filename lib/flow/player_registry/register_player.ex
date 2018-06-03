@@ -4,7 +4,7 @@ defmodule ChessPlus.Flow.PlayerRegistry.RegisterPlayer do
   import ChessPlus.Result, only: [<|>: 2]
 
   @impl(ChessPlus.Wave)
-  def flow({{:event, :player_created}, %{name: name, ip: ip, port: port, tcp_port: tcp_port}}, sender) do
+  def flow({{:event, :player_created}, %{name: name, ip: ip, port: port, tcp_port: tcp_port}}, _) do
     (PlayerRegistry.start_child(tcp_port, name)
     <|> fn _ -> PlayerRegistry.start_child(make_id(ip, port), name) end)
     <|> fn _ -> [] end

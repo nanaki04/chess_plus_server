@@ -45,7 +45,7 @@ defmodule ChessPlus.Gateway.Tcp do
     {:noreply, %{socket: socket, chunks: chunks}}
   end
 
-  def handle_info({:tcp_closed, port}, %{socket: socket} = state) do
+  def handle_info({:tcp_closed, port}, state) do
     Hallway.flow([{:player, :remove}], {:tcp, %{port: port}})
     |> Result.warn()
     {:noreply, state}

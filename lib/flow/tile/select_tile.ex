@@ -3,7 +3,7 @@ defmodule ChessPlus.Flow.SelectTile do
   alias ChessPlus.Well.Duel
   alias ChessPlus.Result
   alias LifeBloom.Bloom
-  import ChessPlus.Result, only: [<|>: 2, <~>: 2, ~>>: 2]
+  import ChessPlus.Result, only: [<|>: 2, ~>>: 2]
 
   @spec invoke(Duel.color, Duel.coordinate, receiver) :: wave_downstream
   def invoke(player, coordinate, receiver) do

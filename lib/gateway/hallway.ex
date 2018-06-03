@@ -3,7 +3,6 @@ defmodule ChessPlus.Gateway.Hallway do
   alias ChessPlus.Gateway.Tcp
   alias ChessPlus.Bridge
   alias ChessPlus.Result
-  import ChessPlus.Result, only: [<|>: 2]
 
   def flow(waves, sender) do
     Task.Supervisor.start_child(ChessPlus.Task.Supervisor, fn ->
@@ -21,7 +20,7 @@ defmodule ChessPlus.Gateway.Hallway do
       {:udp, player, wave} -> Udp.out([wave], [player])
       {:tcp, player, wave} -> Tcp.out([wave], [player])
       {:event, player, wave} -> flow([wave], player)
-      error -> {:error, "Invalid output"}
+      _ -> {:error, "Invalid output"}
     end)
     |> Result.unwrap()
     |> Result.warn()

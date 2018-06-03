@@ -1,11 +1,10 @@
 defmodule ChessPlus.Flow.Login do
   use ChessPlus.Wave
   alias ChessPlus.Well.Player
-  alias ChessPlus.Result
 
   # MEMO: udp arrives first
   @impl(ChessPlus.Wave)
-  def flow({{:player, :join}, %{name: name}}, {:udp, %{ip: ip, port: port}} = sender) do
+  def flow({{:player, :join}, %{name: name}}, {:udp, %{ip: ip, port: port}}) do
     name = if Player.active?(name), do: add_name_counter(name), else: name
 
     player = Player.update!(name, fn p -> %Player{
@@ -35,7 +34,7 @@ defmodule ChessPlus.Flow.Login do
     ]}
   end
 
-  def flow({{:player, :join}, _}, %Player{} = player) do
+  def flow({{:player, :join}, _}, %Player{}) do
     {:error, "Already logged in"}
   end
 

@@ -26,7 +26,7 @@ defmodule ChessPlus.Result do
 
   def appl({:ok, _}, err), do: err
 
-  def appl(err, {:ok, _}), do: err
+  def appl(err, _), do: err
 
   def handle <~> result, do: appl(handle, result)
 
