@@ -1,6 +1,7 @@
 defmodule ChessPlus.Dto.Well do
   alias ChessPlus.Result
-  alias ChessPlus.Well.Rules
+  alias ChessPlus.Option
+  alias ChessPlus.Well.Rules, as: WellRules
   alias ChessPlus.Well.Player, as: WellPlayer
   alias ChessPlus.Well.Duel, as: WellDuel
   import ChessPlus.Result, only: [<|>: 2, <~>: 2, ~>>: 2]
@@ -35,7 +36,7 @@ defmodule ChessPlus.Dto.Well do
 
   defmodule Color do
     @type dto :: term
-    @spec export(Rules.color) :: Result.result
+    @spec export(WellRules.color) :: Result.result
     def export(:black), do: {:ok, "Black"}
     def export(:white), do: {:ok, "White"}
     def export(_), do: {:error, "Failed to export Color"}
@@ -93,24 +94,28 @@ defmodule ChessPlus.Dto.Well do
     @type dto :: term
     @spec export(WellDuel.coordinate) :: Result.result
     def export({r, c}) do
-      {:ok, &%{"Row" => &1, "Column" => &2}}
+      {:ok, &"#{&1}:#{&2}"}
       <~> Row.export(r)
       <~> Column.export(c)
     end
     def export(_), do: {:error, "Failed to export Coordinate"}
 
     @spec imprt(dto) :: Result.result
-    def imprt(%{"Row" => row, "Column" => col}) do
-      {:ok, &{&1, &2}}
-      <~> Row.imprt(row)
-      <~> Column.imprt(col)
+    def imprt(coord) do
+      case String.split(coord, ":") do
+        [row, column] ->
+          {:ok, &{&1, &2}}
+          <~> Row.imprt(row)
+          <~> Column.imprt(column)
+        _ ->
+          {:error, "Failed to import Coordinate"}
+      end
     end
-    def imprt(_), do: {:error, "Failed to import Coordinate"}
   end
 
   defmodule DuelistType do
     @type dto :: term
-    @spec export(Rules.duelist_type) :: Result.result
+    @spec export(WellRules.duelist_type) :: Result.result
     def export(:any), do: {:ok, %{"Type" => "Any"}}
     def export(:self), do: {:ok, %{"Type" => "Self"}}
     def export(:other), do: {:ok, %{"Type" => "Other"}}
@@ -133,7 +138,7 @@ defmodule ChessPlus.Dto.Well do
 
   defmodule Condition do
     @type dto :: term
-    @spec export(Rules.condition) :: Result.result
+    @spec export(WellRules.condition) :: Result.result
     def export(:always), do: {:ok, %{"Type" => "Always"}}
     def export(:move_count), do: {:ok, %{"Type" => "MoveCount"}}
     def export(:exposes_king), do: {:ok, %{"Type" => "ExposesKing"}}
@@ -164,7 +169,7 @@ defmodule ChessPlus.Dto.Well do
 
   defmodule Operator do
     @type dto :: term
-    @spec export(Rules.operator) :: Result.result
+    @spec export(WellRules.operator) :: Result.result
     def export(:is), do: {:ok, %{"Type" => "Is"}}
     def export(:not), do: {:ok, %{"Type" => "Not"}}
     def export({:equals, number}), do: {:ok, %{"Type" => "Equals", "Value" => number}}
@@ -182,7 +187,7 @@ defmodule ChessPlus.Dto.Well do
 
   defmodule Clause do
     @type dto :: term
-    @spec export(Rules.clause) :: Result.result
+    @spec export(WellRules.clause) :: Result.result
     def export({operator, condition}) do
       {:ok, &%{"Operator" => &1, "Condition" => &2}}
       <~> Operator.export(operator)
@@ -201,7 +206,7 @@ defmodule ChessPlus.Dto.Well do
 
   defmodule Conditions do
     @type dto :: term
-    @spec export(Rules.conditions) :: Result.result
+    @spec export(WellRules.conditions) :: Result.result
     def export({:one_of, clauses}) do
       Enum.map(clauses, &Clause.export/1)
       |> Result.unwrap()
@@ -278,7 +283,7 @@ defmodule ChessPlus.Dto.Well do
         "Type" => "Move"
       }}
     """
-    @spec export(Rules.rule) :: Result.result
+    @spec export(WellRules.rule) :: Result.result
     def export({:move, %{condition: condition, offset: {r, c}}}) do
       Conditions.export(condition)
       <|> &%{"Type" => "Move", "Condition" => &1, "Offset" => [r, c]}
@@ -371,77 +376,155 @@ defmodule ChessPlus.Dto.Well do
   defmodule Piece do
     @type dto :: term
     @spec export(WellDuel.pieces) :: Result.result
-    def export({:king, %{color: color, rules: rules}}) do
-      {:ok, &%{"Type" => "King", "Color" => &1, "Rules" => &2}}
+    def export({:king, %{color: color, rules: rules, id: id}}) do
+      {:ok, &%{"Type" => "King", "Color" => &1, "Rules" => &2, "Id" => &3}}
       <~> Color.export(color)
       <~> {:ok, rules}
+      <~> {:ok, id}
     end
-    def export({:queen, %{color: color, rules: rules}}) do
-      {:ok, &%{"Type" => "Queen", "Color" => &1, "Rules" => &2}}
+    def export({:queen, %{color: color, rules: rules, id: id}}) do
+      {:ok, &%{"Type" => "Queen", "Color" => &1, "Rules" => &2, "Id" => &3}}
       <~> Color.export(color)
       <~> {:ok, rules}
+      <~> {:ok, id}
     end
-    def export({:rook, %{color: color, rules: rules}}) do
-      {:ok, &%{"Type" => "Rook", "Color" => &1, "Rules" => &2}}
+    def export({:rook, %{color: color, rules: rules, id: id}}) do
+      {:ok, &%{"Type" => "Rook", "Color" => &1, "Rules" => &2, "Id" => &3}}
       <~> Color.export(color)
       <~> {:ok, rules}
+      <~> {:ok, id}
     end
-    def export({:bishop, %{color: color, rules: rules}}) do
-      {:ok, &%{"Type" => "Bishop", "Color" => &1, "Rules" => &2}}
+    def export({:bishop, %{color: color, rules: rules, id: id}}) do
+      {:ok, &%{"Type" => "Bishop", "Color" => &1, "Rules" => &2, "Id" => &3}}
       <~> Color.export(color)
       <~> {:ok, rules}
+      <~> {:ok, id}
     end
-    def export({:knight, %{color: color, rules: rules}}) do
-      {:ok, &%{"Type" => "Knight", "Color" => &1, "Rules" => &2}}
+    def export({:knight, %{color: color, rules: rules, id: id}}) do
+      {:ok, &%{"Type" => "Knight", "Color" => &1, "Rules" => &2, "Id" => &3}}
       <~> Color.export(color)
       <~> {:ok, rules}
+      <~> {:ok, id}
     end
-    def export({:pawn, %{color: color, rules: rules}}) do
-      {:ok, &%{"Type" => "Pawn", "Color" => &1, "Rules" => &2}}
+    def export({:pawn, %{color: color, rules: rules, id: id}}) do
+      {:ok, &%{"Type" => "Pawn", "Color" => &1, "Rules" => &2, "Id" => &3}}
       <~> Color.export(color)
       <~> {:ok, rules}
+      <~> {:ok, id}
     end
     def export(_), do: {:error, "Failed to export Piece"}
 
     @spec imprt(dto) :: Result.result
-    def imprt(%{"Type" => "King", "Color" => color, "Rules" => rules}) do
-      {:ok, &{:king, %{color: &1, rules: &2}}}
+    def imprt(%{"Type" => "King", "Color" => color, "Rules" => rules, "Id" => id}) do
+      {:ok, &{:king, %{color: &1, rules: &2, id: &3}}}
       <~> Color.imprt(color)
       <~> {:ok, rules}
+      <~> {:ok, id}
     end
-    def imprt(%{"Type" => "Queen", "Color" => color, "Rules" => rules}) do
-      {:ok, &{:queen, %{color: &1, rules: &2}}}
+    def imprt(%{"Type" => "Queen", "Color" => color, "Rules" => rules, "Id" => id}) do
+      {:ok, &{:queen, %{color: &1, rules: &2, id: &3}}}
       <~> Color.imprt(color)
       <~> {:ok, rules}
+      <~> {:ok, id}
     end
-    def imprt(%{"Type" => "Rook", "Color" => color, "Rules" => rules}) do
-      {:ok, &{:rook, %{color: &1, rules: &2}}}
+    def imprt(%{"Type" => "Rook", "Color" => color, "Rules" => rules, "Id" => id}) do
+      {:ok, &{:rook, %{color: &1, rules: &2, id: &3}}}
       <~> Color.imprt(color)
       <~> {:ok, rules}
+      <~> {:ok, id}
     end
-    def imprt(%{"Type" => "Bishop", "Color" => color, "Rules" => rules}) do
-      {:ok, &{:bishop, %{color: &1, rules: &2}}}
+    def imprt(%{"Type" => "Bishop", "Color" => color, "Rules" => rules, "Id" => id}) do
+      {:ok, &{:bishop, %{color: &1, rules: &2, id: &3}}}
       <~> Color.imprt(color)
       <~> {:ok, rules}
+      <~> {:ok, id}
     end
-    def imprt(%{"Type" => "Knight", "Color" => color, "Rules" => rules}) do
-      {:ok, &{:knight, %{color: &1, rules: &2}}}
+    def imprt(%{"Type" => "Knight", "Color" => color, "Rules" => rules, "Id" => id}) do
+      {:ok, &{:knight, %{color: &1, rules: &2, id: &3}}}
       <~> Color.imprt(color)
       <~> {:ok, rules}
+      <~> {:ok, id}
     end
-    def imprt(%{"Type" => "Pawn", "Color" => color, "Rules" => rules}) do
-      {:ok, &{:pawn, %{color: &1, rules: &2}}}
+    def imprt(%{"Type" => "Pawn", "Color" => color, "Rules" => rules, "Id" => id}) do
+      {:ok, &{:pawn, %{color: &1, rules: &2, id: &3}}}
       <~> Color.imprt(color)
       <~> {:ok, rules}
+      <~> {:ok, id}
     end
     def imprt(_), do: {:error, "Failed to import Piece"}
+  end
+
+  defmodule TileSelections do
+    alias ChessPlus.Matrix
+
+    @type dto :: term
+
+    @spec export(Matrix.matrix) :: Result.result
+    def export(tiles) do
+      Matrix.reduce(
+        tiles,
+        {:ok, %{"Black" => %{"Conquerable" => []}, "White" => %{"Conquerable" => []}}},
+        fn
+          row, column, tile, {:ok, selections} ->
+            (tile.selected_by
+            |> Option.map(fn color -> 
+              {:ok, fn c, coord -> put_in(selections, [c, "Selected"], coord) end}
+              <~> Color.export(color)
+              <~> Coordinate.export({row, column})
+            end)
+            |> Option.or_else({:ok, selections}))
+            ~>> (fn selections ->
+              tile.conquerable_by
+              |> Option.map(fn color ->
+                {:ok, fn c, coord -> update_in(selections, [c, "Conquerable"], &[coord | &1]) end}
+                <~> Color.export(color)
+                <~> Coordinate.export({row, column})
+              end)
+              |> Option.or_else({:ok, selections})
+            end)
+          _, _, _, err ->
+            err
+        end
+      )
+    end
+
+    def imprt(_), do: {:error, "TileSelections import not supported at the moment"}
+  end
+
+  defmodule Pieces do
+    alias ChessPlus.Matrix
+
+    @type dto :: term
+
+    @spec export(Matrix.matrix) :: Result.result
+    def export(tiles) do
+      Matrix.reduce(tiles, {:ok, %{}}, fn row, column, tile, map ->
+        case tile.piece do
+          {:some, p} ->
+            {:ok, fn pieces, coord, piece -> Map.put(pieces, coord, piece) end}
+            <~> map
+            <~> Coordinate.export({row, column})
+            <~> Piece.export(p)
+          :none ->
+            map
+        end
+      end)
+    end
+
+    @spec imprt(dto) :: Result.result
+    def imprt(_), do: {:error, "Import Piece not supported at the moment"}
   end
 
   defmodule Tile do
     @type dto :: term
 
     @spec export(WellDuel.tile) :: Result.result
-    def export(%{
+    def export(%{color: color}) do
+      {:ok, &%{"Color" => &1}}
+      <~> Color.export(color)
+    end
+
+    def _export(%{
       piece: piece,
       color: color,
       selected_by: selected_by,
@@ -473,7 +556,11 @@ defmodule ChessPlus.Dto.Well do
     end
 
     @spec imprt(dto) :: Result.result
-    def imprt(%{"Color" => color} = dto) do
+    def imprt(%{"Color" => color}) do
+      {:ok, &%{color: &1}}
+      <~> Color.imprt(color)
+    end
+    def _imprt(%{"Color" => color} = dto) do
       (Color.imprt(color)
       <|> &%{color: &1})
       ~>> fn obj -> import_piece(obj, dto) end
@@ -498,56 +585,64 @@ defmodule ChessPlus.Dto.Well do
     defp import_conquerable_by(obj, _), do: {:ok, Map.put(obj, :conquerable_by, :none)}
   end
 
-  defmodule Board do
+  defmodule Tiles do
     alias ChessPlus.Matrix
 
     @type dto :: term
-    @spec export(WellDuel.board) :: Result.result
-    def export(%{tiles: tiles}) do
-      Matrix.transform(
-        tiles,
-        &Row.export/1,
-        &Column.export/1,
-        &Tile.export/1
-      )
-      |> Result.unwrap_matrix()
-      <|> fn tiles -> %{"Tiles" => tiles} end
+    @spec export(Matrix.matrix) :: Result.result
+    def export(tiles) do
+      Matrix.reduce(tiles, {:ok, %{}}, fn
+        r, c, item, {:ok, map} ->
+          {:ok, &Map.put/3}
+          <~> {:ok, map}
+          <~> Coordinate.export({r, c})
+          <~> Tile.export(item)
+        _, _, _, error ->
+          error
+      end)
     end
 
     @spec imprt(dto) :: Result.result
-    def imprt(%{"Tiles" => tiles}) do
-      Matrix.transform(
-        tiles,
-        &Row.imprt/1,
-        &Column.imprt/1,
-        &Tile.imprt/1
-      )
-      |> Result.unwrap_matrix()
-      <|> fn tiles -> %{ tiles: tiles } end
+    def imprt(tiles) do
+      Enum.reduce(tiles, {:ok, Matrix.empty()}, fn {coord, tile}, matrix ->
+        {:ok, fn m, {r, c}, tile -> Matrix.add(m, r, c, tile) end}
+        <~> matrix
+        <~> Coordinate.imprt(coord)
+        <~> Tile.imprt(tile)
+      end)
+    end
+  end
+
+  defmodule Rules do
+    @type dto :: term
+    @spec export(WellRules.rules) :: Result.result
+    def export(rules) do
+      Enum.map(rules, fn {idx, rule} -> Rule.export(rule) <|> &{to_string(idx), &1} end)
+      |> Result.unwrap()
+      |> Result.into(%{})
+    end
+
+    @spec imprt(dto) :: Result.result
+    def imprt(rules) do
+      Enum.map(rules, fn {idx, rule} -> Rule.imprt(rule) <|> &{Integer.parse(idx) |> elem(0), &1} end)
+      |> Result.unwrap()
+      |> Result.into(%{})
     end
   end
 
   defmodule Duel do
     @type dto :: term
     @spec export(WellDuel.duel) :: Result.result
-    def export(%WellDuel{duelists: duelists, board: board, rules: rules}) do
-      {:ok, &%{"Duelists" => &1, "Board" => &2, "Rules" => &3}}
+    def export(%WellDuel{duelists: duelists}) do
+      {:ok, &%{"Duelists" => &1}}
       <~> (Enum.map(duelists, &Duelist.export/1) |> Result.unwrap())
-      <~> Board.export(board)
-      <~> (Enum.map(rules, fn {idx, rule} -> Rule.export(rule) <|> &{to_string(idx), &1} end)
-        |> Result.unwrap()
-        |> Result.into(%{}))
     end
     def export(_), do: {:error, "Failed to export Duel"}
 
     @spec imprt(dto) :: Result.result
-    def imprt(%{"Duelists" => duelists, "Board" => board, "Rules" => rules}) do
-      {:ok, &%WellDuel{duelists: &1, board: &2, rules: &3}}
+    def imprt(%{"Duelists" => duelists}) do
+      {:ok, &%WellDuel{duelists: &1}}
       <~> (Enum.map(duelists, &Duelist.imprt/1) |> Result.unwrap())
-      <~> Board.imprt(board)
-      <~> (Enum.map(rules, fn {idx, rule} -> Rule.imprt(rule) <|> &{Integer.parse(idx) |> elem(0), &1} end)
-        |> Result.unwrap()
-        |> Result.into(%{}))
     end
     def imprt(_), do: {:error, "Failed to import Duel"}
   end

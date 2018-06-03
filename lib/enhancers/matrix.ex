@@ -164,4 +164,11 @@ defmodule ChessPlus.Matrix do
       end
     end)
   end
+
+  @spec to_map(matrix) :: %{}
+  def to_map(matrix) do
+    reduce(matrix, %{}, fn r, c, item, map ->
+      Map.put(map, {r, c}, item)
+    end)
+  end
 end

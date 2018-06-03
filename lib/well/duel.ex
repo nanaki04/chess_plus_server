@@ -47,7 +47,8 @@ defmodule ChessPlus.Well.Duel do
 
   @type piece :: %{
     color: color,
-    rules: number
+    rules: number,
+    id: id
   }
 
   @type pieces :: {:king, piece}
@@ -84,7 +85,7 @@ defmodule ChessPlus.Well.Duel do
   defstruct id: "",
     duelists: [],
     board: %{},
-    rules: []
+    rules: %{}
 
   @impl(Guardian.Secret)
   def make_initial_state(id) do

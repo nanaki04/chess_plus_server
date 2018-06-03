@@ -196,39 +196,48 @@ defmodule ChessPlus.Rock.Duel.Classic do
     }
   end
 
+  def place_piece({id, pieces}, row, col, {type, parameters}) do
+    pieces = Matrix.update(pieces, row, col, fn tile -> %{
+      tile
+      | piece: {:some, {type, Map.put(parameters, :id, id)}}
+    } end)
+    {id + 1, pieces}
+  end
+
   def place_pieces(tiles, pieces) do
-    tiles
-    |> Matrix.update(:one, :a, fn tile -> %{tile | piece: {:some, pieces.black.rook}} end)
-    |> Matrix.update(:one, :b, fn tile -> %{tile | piece: {:some, pieces.black.bishop}} end)
-    |> Matrix.update(:one, :c, fn tile -> %{tile | piece: {:some, pieces.black.knight}} end)
-    |> Matrix.update(:one, :d, fn tile -> %{tile | piece: {:some, pieces.black.queen}} end)
-    |> Matrix.update(:one, :e, fn tile -> %{tile | piece: {:some, pieces.black.king}} end)
-    |> Matrix.update(:one, :f, fn tile -> %{tile | piece: {:some, pieces.black.knight}} end)
-    |> Matrix.update(:one, :g, fn tile -> %{tile | piece: {:some, pieces.black.bishop}} end)
-    |> Matrix.update(:one, :h, fn tile -> %{tile | piece: {:some, pieces.black.rook}} end)
-    |> Matrix.update(:two, :a, fn tile -> %{tile | piece: {:some, pieces.black.pawn}} end)
-    |> Matrix.update(:two, :b, fn tile -> %{tile | piece: {:some, pieces.black.pawn}} end)
-    |> Matrix.update(:two, :c, fn tile -> %{tile | piece: {:some, pieces.black.pawn}} end)
-    |> Matrix.update(:two, :d, fn tile -> %{tile | piece: {:some, pieces.black.pawn}} end)
-    |> Matrix.update(:two, :e, fn tile -> %{tile | piece: {:some, pieces.black.pawn}} end)
-    |> Matrix.update(:two, :f, fn tile -> %{tile | piece: {:some, pieces.black.pawn}} end)
-    |> Matrix.update(:two, :g, fn tile -> %{tile | piece: {:some, pieces.black.pawn}} end)
-    |> Matrix.update(:two, :h, fn tile -> %{tile | piece: {:some, pieces.black.pawn}} end)
-    |> Matrix.update(:seven, :a, fn tile -> %{tile | piece: {:some, pieces.white.pawn}} end)
-    |> Matrix.update(:seven, :b, fn tile -> %{tile | piece: {:some, pieces.white.pawn}} end)
-    |> Matrix.update(:seven, :c, fn tile -> %{tile | piece: {:some, pieces.white.pawn}} end)
-    |> Matrix.update(:seven, :d, fn tile -> %{tile | piece: {:some, pieces.white.pawn}} end)
-    |> Matrix.update(:seven, :e, fn tile -> %{tile | piece: {:some, pieces.white.pawn}} end)
-    |> Matrix.update(:seven, :f, fn tile -> %{tile | piece: {:some, pieces.white.pawn}} end)
-    |> Matrix.update(:seven, :g, fn tile -> %{tile | piece: {:some, pieces.white.pawn}} end)
-    |> Matrix.update(:seven, :h, fn tile -> %{tile | piece: {:some, pieces.white.pawn}} end)
-    |> Matrix.update(:eight, :a, fn tile -> %{tile | piece: {:some, pieces.white.rook}} end)
-    |> Matrix.update(:eight, :b, fn tile -> %{tile | piece: {:some, pieces.white.bishop}} end)
-    |> Matrix.update(:eight, :c, fn tile -> %{tile | piece: {:some, pieces.white.knight}} end)
-    |> Matrix.update(:eight, :d, fn tile -> %{tile | piece: {:some, pieces.white.queen}} end)
-    |> Matrix.update(:eight, :e, fn tile -> %{tile | piece: {:some, pieces.white.king}} end)
-    |> Matrix.update(:eight, :f, fn tile -> %{tile | piece: {:some, pieces.white.knight}} end)
-    |> Matrix.update(:eight, :g, fn tile -> %{tile | piece: {:some, pieces.white.bishop}} end)
-    |> Matrix.update(:eight, :h, fn tile -> %{tile | piece: {:some, pieces.white.rook}} end)
+    {1, tiles}
+    |> place_piece(:one, :a, pieces.black.rook)
+    |> place_piece(:one, :b, pieces.black.knight)
+    |> place_piece(:one, :c, pieces.black.bishop)
+    |> place_piece(:one, :d, pieces.black.queen)
+    |> place_piece(:one, :e, pieces.black.king)
+    |> place_piece(:one, :f, pieces.black.bishop)
+    |> place_piece(:one, :g, pieces.black.knight)
+    |> place_piece(:one, :h, pieces.black.rook)
+    |> place_piece(:two, :a, pieces.black.pawn)
+    |> place_piece(:two, :b, pieces.black.pawn)
+    |> place_piece(:two, :c, pieces.black.pawn)
+    |> place_piece(:two, :d, pieces.black.pawn)
+    |> place_piece(:two, :e, pieces.black.pawn)
+    |> place_piece(:two, :f, pieces.black.pawn)
+    |> place_piece(:two, :g, pieces.black.pawn)
+    |> place_piece(:two, :h, pieces.black.pawn)
+    |> place_piece(:seven, :a, pieces.white.pawn)
+    |> place_piece(:seven, :b, pieces.white.pawn)
+    |> place_piece(:seven, :c, pieces.white.pawn)
+    |> place_piece(:seven, :d, pieces.white.pawn)
+    |> place_piece(:seven, :e, pieces.white.pawn)
+    |> place_piece(:seven, :f, pieces.white.pawn)
+    |> place_piece(:seven, :g, pieces.white.pawn)
+    |> place_piece(:seven, :h, pieces.white.pawn)
+    |> place_piece(:eight, :a, pieces.white.rook)
+    |> place_piece(:eight, :b, pieces.white.knight)
+    |> place_piece(:eight, :c, pieces.white.bishop)
+    |> place_piece(:eight, :d, pieces.white.queen)
+    |> place_piece(:eight, :e, pieces.white.king)
+    |> place_piece(:eight, :f, pieces.white.bishop)
+    |> place_piece(:eight, :g, pieces.white.knight)
+    |> place_piece(:eight, :h, pieces.white.rook)
+    |> (fn {_, tiles} -> tiles end).()
   end
 end

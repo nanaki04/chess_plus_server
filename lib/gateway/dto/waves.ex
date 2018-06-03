@@ -1,5 +1,5 @@
 defmodule ChessPlus.Dto.Waves do
-  import ChessPlus.Result, only: [<|>: 2, <~>: 2]
+  import ChessPlus.Result, only: [<~>: 2]
   alias ChessPlus.Dto.Well
   alias ChessPlus.Result
 
@@ -75,9 +75,13 @@ defmodule ChessPlus.Dto.Waves do
   end
 
   def export({{:duel, :add} = location, amplitude}) do
-    {:ok, &%{"Location" => &1, "Duel" => &2}}
+    {:ok, &%{"Location" => &1, "Duel" => &2, "Tiles" => &3, "TileSelections" => &4, "Pieces" => &5, "Rules" => &6}}
     <~> export_location(location)
     <~> Well.Duel.export(amplitude)
+    <~> Well.Tiles.export(amplitude.board.tiles)
+    <~> Well.TileSelections.export(amplitude.board.tiles)
+    <~> Well.Pieces.export(amplitude.board.tiles)
+    <~> Well.Rules.export(amplitude.rules)
   end
 
   def export({{:open_duels, :add} = location, amplitude}) do

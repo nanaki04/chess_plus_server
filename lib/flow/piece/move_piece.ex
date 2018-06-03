@@ -7,7 +7,7 @@ defmodule ChessPlus.Flow.MovePiece do
   @impl(ChessPlus.Wave)
   def flow(
     {{:piece, :move}, %{piece: piece, from: {from_r, from_c}, to: {to_r, to_c}} = ampl},
-    %{duel: {:some, id}} = sender)
+    %{duel: {:some, id}})
   do
     Duel.update!(id, fn duel ->
       duel.board.tiles

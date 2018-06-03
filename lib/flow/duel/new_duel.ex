@@ -1,7 +1,7 @@
 defmodule ChessPlus.Flow.Duel.New do
   use ChessPlus.Wave
   alias ChessPlus.Well.Duel
-  import ChessPlus.Result, only: [<|>: 2]
+  # import ChessPlus.Result, only: [<|>: 2]
 
   @impl(ChessPlus.Wave)
   def flow({{:duel, :new}, %{map: map}}, sender) do
