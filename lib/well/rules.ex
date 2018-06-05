@@ -116,7 +116,7 @@ defmodule ChessPlus.Well.Rules do
   """
   @spec gen_moves({number, number}, number, conditions) :: [rule]
   def gen_moves({r, c}, repeat, condition \\ @default_move_conditions) do
-    0..repeat
+    1..repeat
     |> Enum.map(fn x -> {r * x, c * x} end)
     |> Enum.map(fn offset -> new_move(offset, condition) end)
   end
@@ -134,7 +134,7 @@ defmodule ChessPlus.Well.Rules do
   """
   @spec gen_conquers({number, number}, number, conditions) :: [rule]
   def gen_conquers({r, c}, repeat, condition \\ @default_conquer_conditions) do
-    0..repeat
+    1..repeat
     |> Enum.map(fn x -> {r * x, c * x} end)
     |> Enum.map(fn ofs -> new_conquer(ofs, condition) end)
   end
