@@ -48,6 +48,7 @@ defmodule ChessPlus.Well.Duel do
   @type piece :: %{
     color: color,
     rules: number,
+    move_count: number,
     id: id
   }
 
@@ -183,6 +184,16 @@ defmodule ChessPlus.Well.Duel do
     @spec with_color(duelist, color) :: duelist
     def with_color(duelist, color) do
       %{duelist | color: color}
+    end
+  end
+
+  defmodule Piece do
+    @type pieces :: ChessPlus.Well.Duel.pieces
+    @type piece :: ChessPlus.Well.Duel.piece
+
+    @spec map(pieces, (piece -> piece)) :: pieces
+    def map({type, content}, update) do
+      {type, update.(content)}
     end
   end
 

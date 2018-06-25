@@ -1,6 +1,7 @@
 defmodule ChessPlus.Flow.MovePiece do
   use ChessPlus.Wave
   alias ChessPlus.Well.Duel
+  alias ChessPlus.Well.Duel.Piece
   alias ChessPlus.Result
   alias ChessPlus.Matrix
 
@@ -15,7 +16,7 @@ defmodule ChessPlus.Flow.MovePiece do
         %{tile | piece: :none}
       end)
       |> Matrix.update(to_r, to_c, fn tile ->
-        %{tile | piece: {:some, piece}}
+        %{tile | piece: {:some, Piece.map(piece, fn p -> Map.update(p, :move_count, 1, &(&1 + 1)) end)}}
       end)
       |> (fn tiles ->
         %{duel | board: %{duel.board | tiles: tiles}}

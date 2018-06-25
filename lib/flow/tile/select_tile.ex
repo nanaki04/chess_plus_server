@@ -14,6 +14,7 @@ defmodule ChessPlus.Flow.SelectTile do
   def flow({{:tile, :select}, %{coordinate: coordinate}}, sender) do
     color = Duel.map_player(sender, fn player -> player.color end)
 
+    # TODO refactor
     ChessPlus.Flow.DeselectTile.flow({:tile, :deselect}, sender)
 
     {:ok, sender}

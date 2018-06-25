@@ -32,11 +32,11 @@ defmodule ChessPlus.Rock.Duel.Classic do
     # angle movements
     ++ Rules.gen_and_quadra_mirror_moves({1, 1}, 7)
     # knight movements
-    ++ (Enum.map([{1, 2}, {2, 1}], &Rules.new_move(&1, {:not, {:occupied_by, :any}}))
+    ++ (Enum.map([{1, 2}, {2, 1}], &Rules.new_move(&1, {:all_of, [{:not, {:occupied_by, :any}}, {:not, :exposes_king}]}))
       |> Rules.quadra_mirror_moves())
     # pawn first moves
-    ++ [Rules.new_move({2, 0}, {:all_of, [{{:equals, 0}, :move_count}, {:not, :path_blocked}, {:not, {:occupied_by, :any}}]})]
-    ++ [Rules.new_move({-2, 0}, {:all_of, [{{:equals, 0}, :move_count}, {:not, :path_blocked}, {:not, {:occupied_by, :any}}]})]
+    ++ [Rules.new_move({2, 0}, {:all_of, [{{:equals, 0}, :move_count}, {:not, :path_blocked}, {:not, {:occupied_by, :any}}, {:not, :exposes_king}]})]
+    ++ [Rules.new_move({-2, 0}, {:all_of, [{{:equals, 0}, :move_count}, {:not, :path_blocked}, {:not, {:occupied_by, :any}}, {:not, :exposes_king}]})]
 
     # conquers
     # straight conquers
@@ -45,7 +45,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
     # angle conquers
     ++ Rules.gen_and_quadra_mirror_conquers({1, 1}, 7)
     # knight conquers
-    ++ (Enum.map([{1, 2}, {2, 1}], &Rules.new_conquer(&1, {:is, {:occupied_by, :other}}))
+    ++ (Enum.map([{1, 2}, {2, 1}], &Rules.new_conquer(&1, {:all_of, [{:is, {:occupied_by, :other}}, {:not, :exposes_king}]}))
       |> Rules.quadra_mirror_conquers())
 
     # win conditions
@@ -88,7 +88,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
         rules: Rules.find_rule_ids(rules, fn
           {:move, %{offset: {2, 0}, condition: {:all_of, [{{:equals, 0}, :move_count}, {:not, :path_blocked}, {:not, {:occupied_by, :any}}]}}} -> true
           {:move, %{offset: {1, 0}}} -> true
-          {:conquer, %{offset: {1, x}}} -> x == -1 or x ==1
+          {:conquer, %{offset: {1, x}}} -> x == -1 or x == 1
           _ -> false
         end)
       }},
@@ -199,7 +199,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
   def place_piece({id, pieces}, row, col, {type, parameters}) do
     pieces = Matrix.update(pieces, row, col, fn tile -> %{
       tile
-      | piece: {:some, {type, Map.put(parameters, :id, id)}}
+      | piece: {:some, {type, Map.put(parameters, :id, id) |> Map.put(:move_count, 0)}}
     } end)
     {id + 1, pieces}
   end
