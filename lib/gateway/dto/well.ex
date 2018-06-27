@@ -630,19 +630,44 @@ defmodule ChessPlus.Dto.Well do
     end
   end
 
+  defmodule DuelState do
+    @type dto :: term
+    @spec export(ChessPlus.Well.Duel.duel_state) :: Result.result
+    def export({:turn, :black}), do: {:ok, %{"Type" => "Turn", "Value" => "Black"}}
+    def export({:turn, :white}), do: {:ok, %{"Type" => "Turn", "Value" => "White"}}
+    def export({:turn, :any}), do: {:ok, %{"Type" => "Turn", "Value" => "Any"}}
+    def export(:paused), do: {:ok, %{"Type" => "Paused"}}
+    def export({:ended, :remise}), do: {:ok, %{"Type" => "Ended", "Value" => "Remise"}}
+    def export({:ended, {:win, :black}}), do: {:ok, %{"Type" => "Ended", "Value" => %{"Type" => "Win", "Value" => "Black"}}}
+    def export({:ended, {:win, :white}}), do: {:ok, %{"Type" => "Ended", "Value" => %{"Type" => "Win", "Value" => "White"}}}
+    def export(_), do: {:error, "Failed to export duel_state"}
+
+    @spec imprt(dto) :: Result.result
+    def imprt(%{"Type" => "Turn", "Value" => "Black"}), do: {:ok, {:turn, :black}}
+    def imprt(%{"Type" => "Turn", "Value" => "White"}), do: {:ok, {:turn, :white}}
+    def imprt(%{"Type" => "Turn", "Value" => "Any"}), do: {:ok, {:turn, :any}}
+    def imprt(%{"Type" => "Paused"}), do: {:ok, :paused}
+    def imprt(%{"Type" => "Ended", "Value" => "Remise"}), do: {:ok, {:ended, :remise}}
+    def imprt(%{"Type" => "Ended", "Value" => %{"Type" => "Win", "Value" => "Black"}}), do: {:ok, {:ended, {:win, :black}}}
+    def imprt(%{"Type" => "Ended", "Value" => %{"Type" => "Win", "Value" => "White"}}), do: {:ok, {:ended, {:win, :white}}}
+    def imprt(_), do: {:error, "Failed to import DuelState"}
+  end
+
   defmodule Duel do
     @type dto :: term
     @spec export(WellDuel.duel) :: Result.result
-    def export(%WellDuel{duelists: duelists}) do
-      {:ok, &%{"Duelists" => &1}}
+    def export(%WellDuel{duelists: duelists, duel_state: duel_state}) do
+      {:ok, &%{"Duelists" => &1, "DuelState" => &2}}
       <~> (Enum.map(duelists, &Duelist.export/1) |> Result.unwrap())
+      <~> DuelState.export(duel_state)
     end
     def export(_), do: {:error, "Failed to export Duel"}
 
     @spec imprt(dto) :: Result.result
-    def imprt(%{"Duelists" => duelists}) do
-      {:ok, &%WellDuel{duelists: &1}}
+    def imprt(%{"Duelists" => duelists, "DuelState" => duel_state}) do
+      {:ok, &%WellDuel{duelists: &1, duel_state: &2}}
       <~> (Enum.map(duelists, &Duelist.imprt/1) |> Result.unwrap())
+      <~> DuelState.imprt(duel_state)
     end
     def imprt(_), do: {:error, "Failed to import Duel"}
   end

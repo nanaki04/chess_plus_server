@@ -18,7 +18,8 @@ defmodule ChessPlus.Rock.Duel.Classic do
     <|> fn tiles -> %Duel{
       duelists: [],
       board: %{ tiles: tiles },
-      rules: rules
+      rules: rules,
+      duel_state: {:turn, :white}
     } end
   end
 
@@ -49,7 +50,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
       |> Rules.quadra_mirror_conquers())
 
     # win conditions
-    ++ [{:defeat, %{condition: {:all_of, [{:is, :conquerable}, {:not, :movable}, {:not, :defendable}]}}}]
+    ++ [{:defeat, %{condition: {:all_of, [{:is, :conquerable}, {:not, :defendable}]}}}]
     ++ [{:remise, %{condition: {:not, :movable}}}]
 
     |> Rules.to_map()

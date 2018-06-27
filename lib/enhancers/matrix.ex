@@ -142,6 +142,26 @@ defmodule ChessPlus.Matrix do
     end)
   end
 
+  @spec find(matrix, (row, column, item -> boolean)) :: item
+  def find(matrix, predicate) do
+    reduce(matrix, :none, fn
+      _, _, _, {:some, item} ->
+        {:some, item}
+      row, column, item, :none ->
+        if predicate.(row, column, item), do: {:some, item}, else: :none
+    end)
+  end
+
+  @spec find_r_c(matrix, (row, column, item -> boolean)) :: item
+  def find_r_c(matrix, predicate) do
+    reduce(matrix, :none, fn
+      _, _, _, {:some, item} ->
+        {:some, item}
+      row, column, item, :none ->
+        if predicate.(row, column, item), do: {:some, {row, column, item}}, else: :none
+    end)
+  end
+
   @spec update(matrix, row, column, (item -> item)) :: matrix
   def update(matrix, row, column, updater) do
     matrix

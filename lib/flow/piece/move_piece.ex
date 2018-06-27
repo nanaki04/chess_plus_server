@@ -8,7 +8,7 @@ defmodule ChessPlus.Flow.MovePiece do
   @impl(ChessPlus.Wave)
   def flow(
     {{:piece, :move}, %{piece: piece, from: {from_r, from_c}, to: {to_r, to_c}} = ampl},
-    %{duel: {:some, id}})
+    %{duel: {:some, id}} = sender)
   do
     Duel.update!(id, fn duel ->
       duel.board.tiles
@@ -25,6 +25,9 @@ defmodule ChessPlus.Flow.MovePiece do
     |> Duel.map_duelists(fn duelist ->
       {:udp, duelist, {{:piece, :conquer}, ampl}}
     end)
+    |> (&[
+      {:event, sender, {{:event, :piece_moved}, piece}} | &1
+    ]).()
     |> Result.retn()
   end
 

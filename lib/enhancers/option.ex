@@ -50,13 +50,13 @@ defmodule ChessPlus.Option do
   def orFinally(:none, handle), do: handle.()
   def orFinally(some, _), do: some
 
-  @spec fromResult(result) :: option
-  def fromResult({:ok, value}), do: {:some, value}
-  def fromResult({:error, _}), do: :none
+  @spec from_result(result) :: option
+  def from_result({:ok, value}), do: {:some, value}
+  def from_result({:error, _}), do: :none
 
-  @spec toResult(option) :: result
-  def toResult({:some, value}), do: {:ok, value}
-  def toResult(:none), do: {:error, "No value found"}
+  @spec to_result(option) :: result
+  def to_result({:some, value}), do: {:ok, value}
+  def to_result(:none), do: {:error, "No value found"}
 
   @spec unwrap([option]) :: option
   def unwrap(options) do
