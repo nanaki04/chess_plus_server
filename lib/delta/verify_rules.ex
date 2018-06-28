@@ -3,6 +3,7 @@ defmodule ChessPlus.Delta.VerifyRules do
   alias ChessPlus.Well.Duel.Piece
   alias ChessPlus.Well.Rules
   alias ChessPlus.Option
+  alias ChessPlus.Result
   alias ChessPlus.Delta.SimulateRules
   import ChessPlus.Option, only: [<|>: 2, ~>>: 2]
   alias __MODULE__, as: VerifyRules
@@ -29,35 +30,52 @@ defmodule ChessPlus.Delta.VerifyRules do
   @type t :: %VerifyRules{
     rule: rule,
     piece: Option.option,
+    duelist: Option.option,
     duel: duel,
     is_simulation: boolean
   }
 
   defstruct rule: nil,
     piece: :none,
+    duelist: :none,
     duel: %Duel{},
     is_simulation: false
 
-  @spec verify_rules([rule], Option.option, duel, options) :: [rule]
-  def verify_rules(rules, piece, duel, options \\ []) do
+  @spec verify_rules([rule], Option.option, duel) :: [rule]
+  def verify_rules(rules, piece, duel), do: verify_rules(rules, piece, duel, [])
+
+  @spec verify_rules([rule], Option.option, duel, options | color | Option.option) :: [rule]
+  def verify_rules(rules, {:some, {_, %{color: color}}} = piece, duel, options) when is_list(options) do
+    verify_rules(rules, piece, duel, {:some, color}, options)
+  end
+
+  def verify_rules(rules, :none, duel, options) when is_list(options), do: verify_rules(rules, :none, duel, :none, options)
+
+  def verify_rules(rules, piece, duel, color), do: verify_rules(rules, piece, duel, color, [])
+
+  @spec verify_rules([rule], Option.option, duel, color | Option.option, options) :: [rule]
+  def verify_rules(rules, piece, duel, :white, options), do: verify_rules(rules, piece, duel, {:some, :white}, options)
+  def verify_rules(rules, piece, duel, :black, options), do: verify_rules(rules, piece, duel, {:some, :black}, options)
+  def verify_rules(rules, piece, duel, duelist_color, options) when is_list(options) do
     Enum.filter(rules, fn rule -> verify_rule(%VerifyRules{
       rule: rule,
       piece: piece,
+      duelist: duelist_color,
       duel: duel,
       is_simulation: Keyword.get(options, :is_simulation, false)
     }) end)
   end
 
-  @spec can_conquer(coordinate, Option.option | pieces, duel, options) :: boolean
-  def can_conquer(coordinate, piece, duel), do: can_conquer(coordinate, piece, duel, [])
+  @spec can_conquer?(coordinate, Option.option | pieces, duel, options) :: boolean
+  def can_conquer?(coordinate, piece, duel), do: can_conquer?(coordinate, piece, duel, [])
 
-  def can_conquer(coordinate, {:some, piece}, duel, options) do
-    can_conquer(coordinate, piece, duel, options)
+  def can_conquer?(coordinate, {:some, piece}, duel, options) do
+    can_conquer?(coordinate, piece, duel, options)
   end
 
-  def can_conquer(_, :none, _, _, _), do: false
+  def can_conquer?(_, :none, _, _), do: false
 
-  def can_conquer(coordinate, piece, duel, options) do
+  def can_conquer?(coordinate, piece, duel, options) do
     Duel.find_rules_targetting_coord(duel, coordinate, piece)
     |> Enum.filter(fn
       {:conquer, _} -> true
@@ -68,32 +86,64 @@ defmodule ChessPlus.Delta.VerifyRules do
     |> (&(&1 > 0)).()
   end
 
-  @spec can_any_conquer(coordinate, [pieces], duel, options) :: boolean
-  def can_any_conquer(coordinate, pieces, duel, options) do
+  @spec can_any_conquer?(coordinate, [pieces], duel, options) :: boolean
+  def can_any_conquer?(coordinate, pieces, duel, options) do
     Enum.reduce(pieces, false, fn
       _, true -> true
-      piece, false -> can_conquer(coordinate, piece, duel, options)
+      piece, false -> can_conquer?(coordinate, piece, duel, options)
     end)
   end
 
-  @spec can_conquer_black_king(duel, options) :: boolean
-  def can_conquer_black_king(duel, options \\ []) do
+  @spec can_conquer_black_king?(duel, options) :: boolean
+  def can_conquer_black_king?(duel, options \\ []) do
     opponent_pieces = Piece.find_by_color(duel, :white)
 
     (Piece.find_black_king(duel)
     ~>> fn king -> Piece.find_piece_coordinate(duel, king) end
-    <|> fn coord -> can_any_conquer(coord, opponent_pieces, duel, options) end)
+    <|> fn coord -> can_any_conquer?(coord, opponent_pieces, duel, options) end)
     |> Option.or_else(false)
   end
 
-  @spec can_conquer_white_king(duel, options) :: boolean
-  def can_conquer_white_king(duel, options \\ []) do
+  @spec can_conquer_white_king?(duel, options) :: boolean
+  def can_conquer_white_king?(duel, options \\ []) do
     opponent_pieces = Piece.find_by_color(duel, :black)
 
     (Piece.find_white_king(duel)
     ~>> fn king -> Piece.find_piece_coordinate(duel, king) end
-    <|> fn coord -> can_any_conquer(coord, opponent_pieces, duel, options) end)
+    <|> fn coord -> can_any_conquer?(coord, opponent_pieces, duel, options) end)
     |> Option.or_else(false)
+  end
+
+  @spec can_move?(duel, piece | Option.option) :: boolean
+  def can_move?(_, :none), do: false
+  def can_move?(duel, {:some, piece}), do: can_move?(duel, piece)
+  def can_move?(duel, piece) do
+    Enum.reduce([:move, :conquer, :move_combo], false, fn
+      _, true ->
+        true
+      rule_type, false ->
+        Duel.fetch_piece_rules(duel, piece, rule_type)
+        |> Enum.reduce(false, fn
+          _, true -> true
+          rule, false -> verify_rules([rule], piece, duel)
+        end)
+    end)
+  end
+
+  def can_white_move?(duel) do
+    Piece.find_by_color(duel, :white)
+    |> Enum.reduce(false, fn
+      _, true -> true
+      piece, false -> can_move?(duel, piece)
+    end)
+  end
+
+  def can_black_move?(duel) do
+    Piece.find_by_color(duel, :black)
+    |> Enum.reduce(false, fn
+      _, true -> true
+      piece, false -> can_move?(duel, piece)
+    end)
   end
 
   @spec verify_rule(t) :: boolean
@@ -102,21 +152,21 @@ defmodule ChessPlus.Delta.VerifyRules do
   end
 
   @spec verify_conditions(t) :: term
-  defp verify_conditions(%{rule: {_, %{condition: {_, _} = clause}}} = state), do: verify_clause(state, clause)
-
-  defp verify_conditions(%{rule: {_, %{condition: {:one_of, clauses}}}} = state) do
+  defp verify_conditions(%{rule: {_, %{condition: {:one_of, clauses}}}} = state) when is_list(clauses) do
     Enum.reduce(clauses, false, fn
       clause, false -> verify_clause(state, clause)
       _, true -> true
     end)
   end
 
-  defp verify_conditions(%{rule: {_, %{condition: {:all_of, clauses}}}} = state) do
+  defp verify_conditions(%{rule: {_, %{condition: {:all_of, clauses}}}} = state) when is_list(clauses) do
     Enum.reduce(clauses, true, fn
       clause, true -> verify_clause(state, clause)
       _, false -> false
     end)
   end
+
+  defp verify_conditions(%{rule: {_, %{condition: {_, _} = clause}}} = state), do: verify_clause(state, clause)
 
   defp verify_conditions(%{rule: {rule_type, %{condition: conditions} = rule_content}} = state) do
     Enum.reduce(conditions, true, fn
@@ -135,7 +185,7 @@ defmodule ChessPlus.Delta.VerifyRules do
 
   @spec verify(t, condition) :: condition_result
   defp verify(_, :always), do: {:conditional, true}
-  defp verify(%{piece: {:some, {_, %{move_count: move_count}}}}), do: {:numeric, move_count}
+  defp verify(%{piece: {:some, {_, %{move_count: move_count}}}}, :move_count), do: {:numeric, move_count}
 
   defp verify(%{is_simulation: true}, :exposes_king) do
     {:ignore_operator, true}
@@ -143,18 +193,52 @@ defmodule ChessPlus.Delta.VerifyRules do
 
   defp verify(%{piece: {:some, {_, %{color: :white}}}} = state, :exposes_king) do
     duel = SimulateRules.simulate_rule(state.duel, state.rule, state.piece)
-    {:conditional, can_conquer_white_king(duel, is_simulation: true)}
+    {:conditional, can_conquer_white_king?(duel, is_simulation: true)}
   end
 
   defp verify(%{piece: {:some, {_, %{color: :black}}}} = state, :exposes_king) do
     duel = SimulateRules.simulate_rule(state.duel, state.rule, state.piece)
-    {:conditional, can_conquer_black_king(duel, is_simulation: true)}
+    {:conditional, can_conquer_black_king?(duel, is_simulation: true)}
   end
 
-  defp verify(state, :path_blocked) do
-    # TODO
-    {:ignore_operator, true}
+  defp verify(%{duelist: {:some, :white}, duel: duel}, :exposes_king) do
+    {:conditional, can_conquer_white_king?(duel, is_simulation: true)}
   end
+
+  defp verify(%{duelist: {:some, :black}, duel: duel}, :exposes_king) do
+    {:conditional, can_conquer_black_king?(duel, is_simulation: true)}
+  end
+
+  defp verify(%{piece: {:some, piece}, rule: {_, %{offset: {x, y}}}, duel: duel}, :path_blocked) do
+    (Duel.Piece.find_piece_coordinate(duel, piece)
+    <|> (&Duel.Coordinate.to_num/1)
+    <|> fn {origin_x, origin_y} ->
+      sign_x = if x < 0, do: -1, else: 1
+      sign_y = if y < 0, do: -1, else: 1
+      abs_x = abs(x)
+      abs_y = abs(y)
+      steps = max(abs_x, abs_y) - 1
+      factor_x = (abs_x - 1) / steps |> max(0)
+      factor_y = (abs_y - 1) / steps |> max(0)
+
+      1..steps
+      |> Enum.reduce(false, fn
+        step, false ->
+          {factor_x * step, factor_y * step}
+          |> (fn {x, y} -> {round(x), round(y)} end).()
+          |> (fn {x, y} -> {sign_x * x, sign_y * y} end).()
+          |> (fn {x, y} -> {origin_x + x, origin_y + y} end).()
+          |> Duel.Coordinate.from_num()
+          |> Result.map(fn coord -> Duel.fetch_piece(duel, coord) end)
+          |> Result.or_else(:none)
+          |> Option.to_bool()
+        _, true ->
+          true
+      end)
+    end)
+    |> Option.or_else({:conditional, false})
+  end
+  defp verify(_, :path_blocked), do: {:ignore_operator, true}
 
   defp verify(%{piece: :none}, {:occupied_by, _}), do: {:ignore_operator, false}
   defp verify(%{piece: {_, %{color: color}}} = state, {:occupied_by, duelist_type}) do
@@ -173,17 +257,20 @@ defmodule ChessPlus.Delta.VerifyRules do
     |> Option.or_else({:conditional, false})
   end
 
-  defp verify(state, :conquerable) do
+  defp verify(_, :conquerable) do
     # TODO
     {:ignore_operator, true}
   end
 
-  defp verify(state, :movable) do
-    # TODO
-    {:ignore_operator, true}
+  defp verify(%{duelist: {:some, :white}} = state, :movable) do
+    {:conditional, can_white_move?(state.duel)}
   end
 
-  defp verify(state, :defendable) do
+  defp verify(%{duelist: {:some, :black}} = state, :movable) do
+    {:conditional, can_black_move?(state.duel)}
+  end
+
+  defp verify(_, :defendable) do
     # TODO
     {:ignore_operator, true}
   end

@@ -69,4 +69,8 @@ defmodule ChessPlus.Option do
       lst -> {:some, Enum.reverse(lst)}
     end
   end
+
+  @spec to_bool(option) :: boolean
+  def to_bool({:some, _}), do: true
+  def to_bool(:none), do: false
 end

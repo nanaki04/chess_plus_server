@@ -131,5 +131,11 @@ defmodule ChessPlus.Dto.Waves do
     <~> {:ok, amplitude}
   end
 
+  def export({{:duel_state, :update} = location, amplitude}) do
+    {:ok, &%{"Location" => &1, "DuelState" => &2}}
+    <~> export_location(location)
+    <~> Well.DuelState.export(amplitude)
+  end
+
   def export(_), do: {:error, "Failed to export Wave"}
 end

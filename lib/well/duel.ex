@@ -93,6 +93,7 @@ defmodule ChessPlus.Well.Duel do
     duelists: [duelist],
     board: board,
     rules: ChessPlus.Well.Rules.rules,
+    win_conditions: [ChessPlus.Well.Rules.rule],
     duel_state: duel_state
   }
 
@@ -100,11 +101,20 @@ defmodule ChessPlus.Well.Duel do
     duelists: [],
     board: %{},
     rules: %{},
+    win_conditions: [],
     duel_state: :paused
 
   @impl(Guardian.Secret)
   def make_initial_state(id) do
     %Duel{id: id}
+  end
+
+  defmodule Color do
+    @type color :: ChessPlus.Well.Duel.color
+
+    @spec inverse(color) :: color
+    def inverse(:white), do: :black
+    def inverse(:black), do: :white
   end
 
   defmodule Row do
@@ -193,6 +203,13 @@ defmodule ChessPlus.Well.Duel do
       {:ok, &{&1, &2}}
       <~> Row.from_num(x)
       <~> Column.from_num(y)
+    end
+
+    @spec to_num(t) :: Result.result
+    def to_num({row, column}) do
+      {:ok, &{&1, &2}}
+      <~> Row.to_num(row)
+      <~> Column.to_num(column)
     end
 
     @spec find_offset(t, t) :: Result.result
@@ -286,7 +303,6 @@ defmodule ChessPlus.Well.Duel do
     end
 
     def find_first([piece | _]), do: {:some, piece}
-    def find_first([piece]), do: {:some, piece}
     def find_first([]), do: :none
 
     def find_black_king(state) do
@@ -340,15 +356,15 @@ defmodule ChessPlus.Well.Duel do
     end)
   end
 
-  def fetch_tile(%Duel{} = duel, {row, col}) do
-    Matrix.fetch(duel.board.tiles, row, col)
-    |> Option.from_result
-  end
-
   def update_tile_where(%Duel{id: _} = duel, predicate, update) do
     update_board(duel, fn board ->
       %{board | tiles: Matrix.update_where(board.tiles, predicate, update)}
     end)
+  end
+
+  def fetch_tile(%Duel{} = duel, {row, col}) do
+    Matrix.fetch(duel.board.tiles, row, col)
+    |> Option.from_result
   end
 
   def move_piece(%Duel{id: _} = duel, {from_row, from_col} = from, to) do
@@ -464,6 +480,13 @@ defmodule ChessPlus.Well.Duel do
     |> update.()
   end
 
+  def fetch_player(duel, sender) do
+    case Enum.find(duel.duelists, fn %{name: name} -> name == sender.name end) do
+      nil -> :none
+      duelist -> {:some, duelist}
+    end
+  end
+
   def is_player?(%{duel: {:some, id}} = player, color) do
     Duel.fetch(id)
     |> is_player?(color, player)
@@ -471,6 +494,19 @@ defmodule ChessPlus.Well.Duel do
 
   def is_player?(duel, color, sender) do
     map_player(duel, fn player -> player.color == color end, sender)
+  end
+
+  def fetch_player_color(duel, sender) do
+    fetch_player(duel, sender)
+    |> Option.map(fn %{color: color} -> color end)
+  end
+
+  def update_duel_state(duel, updater) when is_function(updater, 1) do
+    %Duel{duel | duel_state: updater.(duel.duel_state)}
+  end
+
+  def update_duel_state(duel, state) do
+    %Duel{duel | duel_state: state}
   end
 
 end
