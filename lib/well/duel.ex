@@ -150,7 +150,7 @@ defmodule ChessPlus.Well.Duel do
     def from_num(10), do: :ten |> retn
     def from_num(11), do: :eleven |> retn
     def from_num(12), do: :twelve |> retn
-    def from_num(x), do: {:error, "Column not found while attempting to convert to number: " <> x}
+    def from_num(x), do: {:error, "Column not found while attempting to convert to number: " <> to_string(x)}
   end
 
   defmodule Column do
@@ -186,7 +186,7 @@ defmodule ChessPlus.Well.Duel do
     def from_num(10), do: :j |> retn
     def from_num(11), do: :k |> retn
     def from_num(12), do: :l |> retn
-    def from_num(x), do: {:error, "No column found while attempting to convert from number: " <> x}
+    def from_num(x), do: {:error, "No column found while attempting to convert from number: " <> to_string(x)}
   end
 
   defmodule Coordinate do
@@ -194,7 +194,7 @@ defmodule ChessPlus.Well.Duel do
     alias ChessPlus.Well.Duel.Row
     alias ChessPlus.Well.Duel.Column
     alias ChessPlus.Result
-    import ChessPlus.Result, only: [<~>: 2, <|>: 2]
+    import ChessPlus.Result, only: [<~>: 2, <|>: 2, ~>>: 2]
 
     @type t :: Duel.coordinate
 
@@ -226,7 +226,7 @@ defmodule ChessPlus.Well.Duel do
       ({:ok, &{&1 + x, &2 + y}}
       <~> Row.to_num(row)
       <~> Column.to_num(col))
-      <|> &from_num/1
+      ~>> &from_num/1
     end
   end
 
@@ -276,7 +276,12 @@ defmodule ChessPlus.Well.Duel do
     end
 
     def find_by_type(%Duel{} = duel, piece_type) do
-      Duel.fetch_piece_where(duel, fn {type, _} -> type == piece_type end)
+      Duel.fetch_piece_where(duel, fn
+        {:some, {type, _}} -> type == piece_type
+        {type, _} -> type == piece_type
+        _ -> false
+      end)
+      |> Enum.map(&Option.unlift/1)
     end
 
     def find_by_type(pieces, piece_type) do
@@ -289,11 +294,21 @@ defmodule ChessPlus.Well.Duel do
     end
 
     def find_by_color(%Duel{} = duel, color) do
-      Duel.fetch_piece_where(duel, fn {_, %{color: c}} -> color == c end)
+      Duel.fetch_piece_where(duel, fn
+        {:some, {_, %{color: c}}} -> color == c
+        {_, %{color: c}} -> color == c
+        _ -> false
+      end)
+      |> Enum.map(&Option.unlift/1)
     end
 
     def find_by_color(pieces, color) do
-      Enum.filter(pieces, fn {_, %{color: c}} -> color == c end)
+      Enum.filter(pieces, fn
+        {:some, {_, %{color: c}}} -> color == c
+        {_, %{color: c}} -> color == c
+        _ -> false
+      end)
+      |> Enum.map(&Option.unlift/1)
     end
 
     @spec find_by_type_and_color(state, atom, color) :: [pieces]
@@ -335,8 +350,8 @@ defmodule ChessPlus.Well.Duel do
     update_duel(sender, fn duel -> %{duel | board: update.(duel.board)} end)
   end
 
-  def update_board(%Duel{id: id, board: board}, update) do
-    Duel.update!(id, &%{&1 | board: update.(board)})
+  def update_board(%Duel{board: board} = duel, update) do
+    {:ok, %{duel | board: update.(board)}}
   end
 
   @spec update_tile(sender | duel, coordinate, (tile -> tile)) :: Result.result
@@ -364,14 +379,21 @@ defmodule ChessPlus.Well.Duel do
 
   def fetch_tile(%Duel{} = duel, {row, col}) do
     Matrix.fetch(duel.board.tiles, row, col)
-    |> Option.from_result
+    |> Option.from_result()
+  end
+
+  def has_tile?(%Duel{} = duel, coord) do
+    fetch_tile(duel, coord)
+    |> Option.to_bool()
   end
 
   def move_piece(%Duel{id: _} = duel, {from_row, from_col} = from, to) do
-    piece = Matrix.fetch(duel.board.tiles, from_row, from_col) |> Option.from_result()
+    piece = Matrix.fetch(duel.board.tiles, from_row, from_col)
+    |> Option.from_result()
+    |> Option.bind(fn tile -> tile.piece end)
 
-    update_tile(duel, from, fn _ -> :none end)
-    |> Result.bind(fn duel -> update_tile(duel, to, fn _ -> piece end) end)
+    update_tile(duel, from, fn tile -> %{tile | piece: :none} end)
+    |> Result.bind(fn duel -> update_tile(duel, to, fn tile -> %{tile | piece: piece} end) end)
   end
 
   def update_piece_where(%Duel{id: _} = duel, predicate, update) do
@@ -389,8 +411,8 @@ defmodule ChessPlus.Well.Duel do
   end
 
   def fetch_piece_where(%Duel{id: _} = duel, predicate) do
-    Matrix.reduce(duel.board.tiles, [], fn _, _, piece, acc ->
-      if predicate.(piece), do: [piece | acc], else: acc
+    Matrix.reduce(duel.board.tiles, [], fn _, _, tile, acc ->
+      if predicate.(tile.piece), do: [tile.piece | acc], else: acc
     end)
   end
 
@@ -432,9 +454,10 @@ defmodule ChessPlus.Well.Duel do
          {:some, piece_coordinate} <- Duel.Piece.find_piece_coordinate(duel, piece)
     do
       offset = Duel.Coordinate.find_offset(piece_coordinate, coordinate)
+
       Enum.filter(rules, fn
-        {:move, %{offset: rule_offset}} -> offset == rule_offset
-        {:conquer, %{offset: rule_offset}} -> offset == rule_offset
+        {:move, %{offset: rule_offset}} -> offset == {:ok, rule_offset}
+        {:conquer, %{offset: rule_offset}} -> offset == {:ok, rule_offset}
         _ -> false
       end)
     else

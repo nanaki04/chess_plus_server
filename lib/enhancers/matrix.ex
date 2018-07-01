@@ -1,5 +1,5 @@
 defmodule ChessPlus.Matrix do
-  import ChessPlus.Result, only: [<|>: 2]
+  import ChessPlus.Result, only: [<|>: 2, ~>>: 2]
 
   @type row :: term
   @type column :: term
@@ -124,7 +124,7 @@ defmodule ChessPlus.Matrix do
       :error -> {:error, "Row not found on matrix"}
       ok -> ok
     end
-    <|> fn col ->
+    ~>> fn col ->
       case Map.fetch(col, column) do
         :error -> {:error, "Column not found on matrix"}
         ok -> ok

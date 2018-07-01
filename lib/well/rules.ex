@@ -369,7 +369,7 @@ defmodule ChessPlus.Well.Rules do
 
   @spec find_rules(rules, [number] | (rule -> boolean)) :: [rule]
   def find_rules(rules, ids) when is_list(ids) do
-    Enum.reduce(ids, fn id, acc ->
+    Enum.reduce(ids, [], fn id, acc ->
       case Map.fetch(rules, id) do
         {:ok, rule} -> [rule | acc]
         _ -> acc

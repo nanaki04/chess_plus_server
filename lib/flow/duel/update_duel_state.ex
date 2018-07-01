@@ -33,9 +33,9 @@ defmodule ChessPlus.Flow.Duel.UpdateDuelState do
       _, %{duel_state: {:ended, _}} = duel ->
         duel
       {:defeat, _} = win_condition, duel ->
-        verify_win_condition(duel, win_condition, player_color, {:ended, {:win, enemy_color}})
+        verify_win_condition(duel, win_condition, enemy_color, {:ended, {:win, player_color}})
       {:remise, _} = win_condition, duel ->
-        verify_win_condition(duel, win_condition, player_color, {:ended, :remise})
+        verify_win_condition(duel, win_condition, enemy_color, {:ended, :remise})
     end)
   end
 

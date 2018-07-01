@@ -50,6 +50,10 @@ defmodule ChessPlus.Option do
   def orFinally(:none, handle), do: handle.()
   def orFinally(some, _), do: some
 
+  @spec unlift(option) :: any
+  def unlift({:some, val}), do: val
+  def unlift(val), do: val
+
   @spec from_result(result) :: option
   def from_result({:ok, value}), do: {:some, value}
   def from_result({:error, _}), do: :none

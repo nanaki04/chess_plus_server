@@ -5,6 +5,7 @@ defmodule ChessPlus.Delta.VerifyRules do
   alias ChessPlus.Option
   alias ChessPlus.Result
   alias ChessPlus.Delta.SimulateRules
+  alias ChessPlus.Logger.RuleLogger
   import ChessPlus.Option, only: [<|>: 2, ~>>: 2]
   alias __MODULE__, as: VerifyRules
 
@@ -98,7 +99,7 @@ defmodule ChessPlus.Delta.VerifyRules do
   def can_conquer_black_king?(duel, options \\ []) do
     opponent_pieces = Piece.find_by_color(duel, :white)
 
-    (Piece.find_black_king(duel)
+    (((Piece.find_black_king(duel)
     ~>> fn king -> Piece.find_piece_coordinate(duel, king) end
     <|> fn coord -> can_any_conquer?(coord, opponent_pieces, duel, options) end)
     |> Option.or_else(false)
@@ -125,7 +126,7 @@ defmodule ChessPlus.Delta.VerifyRules do
         Duel.fetch_piece_rules(duel, piece, rule_type)
         |> Enum.reduce(false, fn
           _, true -> true
-          rule, false -> verify_rules([rule], piece, duel)
+          rule, false -> (verify_rules([rule], {:some, piece}, duel) |> length) > 0
         end)
     end)
   end
@@ -178,9 +179,11 @@ defmodule ChessPlus.Delta.VerifyRules do
   defp verify_conditions(_), do: true
 
   @spec verify_clause(t, clause) :: boolean
-  defp verify_clause(state, {operator, condition}) do
-    verify(state, condition)
-    |> apply_operator(operator)
+  defp verify_clause(state, clause) do
+    RuleLogger.log(state, clause, fn state, {operator, condition} ->
+      verify(state, condition)
+      |> apply_operator(operator)
+    end)
   end
 
   @spec verify(t, condition) :: condition_result
@@ -192,13 +195,21 @@ defmodule ChessPlus.Delta.VerifyRules do
   end
 
   defp verify(%{piece: {:some, {_, %{color: :white}}}} = state, :exposes_king) do
-    duel = SimulateRules.simulate_rule(state.duel, state.rule, state.piece)
-    {:conditional, can_conquer_white_king?(duel, is_simulation: true)}
+    case SimulateRules.simulate_rule(state.duel, state.rule, state.piece) do
+      {:ok, duel} ->
+        {:conditional, can_conquer_white_king?(duel, is_simulation: true)}
+      {:error, _} ->
+        {:ignore_operator, false}
+    end
   end
 
   defp verify(%{piece: {:some, {_, %{color: :black}}}} = state, :exposes_king) do
-    duel = SimulateRules.simulate_rule(state.duel, state.rule, state.piece)
-    {:conditional, can_conquer_black_king?(duel, is_simulation: true)}
+    case SimulateRules.simulate_rule(state.duel, state.rule, state.piece) do
+      {:ok, duel} ->
+        {:conditional, can_conquer_black_king?(duel, is_simulation: true)}
+      {:error, _} ->
+        {:ignore_operator, false}
+    end
   end
 
   defp verify(%{duelist: {:some, :white}, duel: duel}, :exposes_king) do
@@ -212,16 +223,18 @@ defmodule ChessPlus.Delta.VerifyRules do
   defp verify(%{piece: {:some, piece}, rule: {_, %{offset: {x, y}}}, duel: duel}, :path_blocked) do
     (Duel.Piece.find_piece_coordinate(duel, piece)
     <|> (&Duel.Coordinate.to_num/1)
+    ~>> (&Option.from_result/1)
     <|> fn {origin_x, origin_y} ->
       sign_x = if x < 0, do: -1, else: 1
       sign_y = if y < 0, do: -1, else: 1
       abs_x = abs(x)
       abs_y = abs(y)
       steps = max(abs_x, abs_y) - 1
-      factor_x = (abs_x - 1) / steps |> max(0)
-      factor_y = (abs_y - 1) / steps |> max(0)
 
-      1..steps
+      factor_x = if steps == 0, do: 0, else: (abs_x - 1) / steps |> max(0)
+      factor_y = if steps == 0, do: 0, else: (abs_y - 1) / steps |> max(0)
+
+      if steps == 0, do: {:conditional, false}, else: 1..steps
       |> Enum.reduce(false, fn
         step, false ->
           {factor_x * step, factor_y * step}
@@ -235,27 +248,32 @@ defmodule ChessPlus.Delta.VerifyRules do
         _, true ->
           true
       end)
+      |> (&{:conditional, &1}).()
     end)
     |> Option.or_else({:conditional, false})
   end
   defp verify(_, :path_blocked), do: {:ignore_operator, true}
 
   defp verify(%{piece: :none}, {:occupied_by, _}), do: {:ignore_operator, false}
-  defp verify(%{piece: {_, %{color: color}}} = state, {:occupied_by, duelist_type}) do
+  defp verify(%{piece: {:some, {_, %{color: color}}}} = state, {:occupied_by, duelist_type}) do
     (Duel.find_rule_target_coord(state.duel, state.rule, state.piece)
-    <|> fn coord -> Duel.fetch_piece(state.duel, coord) end
+    ~>> (&Option.from_result/1)
+    ~>> fn coord -> Duel.fetch_piece(state.duel, coord) end
     <|> fn
-      {:some, %{color: occupant_color}} ->
+      {_, %{color: occupant_color}} ->
+        ChessPlus.Logger.log(occupant_color)
         case duelist_type do
           :self -> {:conditional, color == occupant_color}
           :other -> {:conditional, color != occupant_color}
           :any -> {:conditional, true}
           _ -> {:conditional, false}
         end
-      _ -> {:conditional, false}
+      _ ->
+        {:conditional, false}
     end)
     |> Option.or_else({:conditional, false})
   end
+  defp verify(_, {:occupied_by, _}), do: {:ignore_operator, false}
 
   defp verify(_, :conquerable) do
     # TODO
