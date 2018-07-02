@@ -22,6 +22,10 @@ defmodule ChessPlus.Logger do
     IO.inspect(state, label: IO.ANSI.cyan <> "Flow" <> IO.ANSI.reset, syntax_colors: @blue)
   end
 
+  def log(state, :rule, _) do
+    IO.inspect(state, label: IO.ANSI.cyan <> "Rules" <> IO.ANSI.reset, syntax_colors: @blue)
+  end
+
   def warn(state) do
     warn(state, @env)
   end

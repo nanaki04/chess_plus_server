@@ -50,13 +50,17 @@ defmodule ChessPlus.Option do
   def orFinally(:none, handle), do: handle.()
   def orFinally(some, _), do: some
 
-  @spec fromResult(result) :: option
-  def fromResult({:ok, value}), do: {:some, value}
-  def fromResult({:error, _}), do: :none
+  @spec unlift(option) :: any
+  def unlift({:some, val}), do: val
+  def unlift(val), do: val
 
-  @spec toResult(option) :: result
-  def toResult({:some, value}), do: {:ok, value}
-  def toResult(:none), do: {:error, "No value found"}
+  @spec from_result(result) :: option
+  def from_result({:ok, value}), do: {:some, value}
+  def from_result({:error, _}), do: :none
+
+  @spec to_result(option) :: result
+  def to_result({:some, value}), do: {:ok, value}
+  def to_result(:none), do: {:error, "No value found"}
 
   @spec unwrap([option]) :: option
   def unwrap(options) do
@@ -69,4 +73,8 @@ defmodule ChessPlus.Option do
       lst -> {:some, Enum.reverse(lst)}
     end
   end
+
+  @spec to_bool(option) :: boolean
+  def to_bool({:some, _}), do: true
+  def to_bool(:none), do: false
 end

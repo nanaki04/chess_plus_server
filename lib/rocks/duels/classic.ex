@@ -18,7 +18,13 @@ defmodule ChessPlus.Rock.Duel.Classic do
     <|> fn tiles -> %Duel{
       duelists: [],
       board: %{ tiles: tiles },
-      rules: rules
+      rules: rules,
+      win_conditions: Rules.find_rules(rules, fn 
+        {:defeat, _} -> true
+        {:remise, _} -> true
+        _ -> false
+      end),
+      duel_state: {:turn, :white}
     } end
   end
 
@@ -48,9 +54,11 @@ defmodule ChessPlus.Rock.Duel.Classic do
     ++ (Enum.map([{1, 2}, {2, 1}], &Rules.new_conquer(&1, {:all_of, [{:is, {:occupied_by, :other}}, {:not, :exposes_king}]}))
       |> Rules.quadra_mirror_conquers())
 
+    # TODO move combo
+
     # win conditions
-    ++ [{:defeat, %{condition: {:all_of, [{:is, :conquerable}, {:not, :movable}, {:not, :defendable}]}}}]
-    ++ [{:remise, %{condition: {:not, :movable}}}]
+    ++ [{:defeat, %{condition: {:all_of, [{:not, :movable}, {:is, :exposes_king}]}}}]
+    ++ [{:remise, %{condition: {:all_of, [{:not, :movable}, {:not, :exposes_king}]}}}]
 
     |> Rules.to_map()
   end
@@ -86,7 +94,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
       pawn: {:pawn, %{
         color: :black,
         rules: Rules.find_rule_ids(rules, fn
-          {:move, %{offset: {2, 0}, condition: {:all_of, [{{:equals, 0}, :move_count}, {:not, :path_blocked}, {:not, {:occupied_by, :any}}]}}} -> true
+          {:move, %{offset: {2, 0}, condition: {:all_of, [{{:equals, 0}, :move_count}, {:not, :path_blocked}, {:not, {:occupied_by, :any}}, {:not, :exposes_king}]}}} -> true
           {:move, %{offset: {1, 0}}} -> true
           {:conquer, %{offset: {1, x}}} -> x == -1 or x == 1
           _ -> false
@@ -97,7 +105,6 @@ defmodule ChessPlus.Rock.Duel.Classic do
         rules: Rules.find_rule_ids(rules, fn
           {:move, %{offset: {r, c}}} -> abs(r) < 2 and abs(c) < 2
           {:conquer, %{offset: {r, c}}} -> abs(r) < 2 and abs(c) < 2
-          {:defeat, _} -> true
           {:move_combo, _} -> true
           _ -> false
         end)
@@ -140,7 +147,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
       pawn: {:pawn, %{
         color: :white,
         rules: Rules.find_rule_ids(rules, fn
-          {:move, %{offset: {-2, 0}, condition: {:all_of, [{{:equals, 0}, :move_count}, {:not, :path_blocked}, {:not, {:occupied_by, :any}}]}}} -> true
+          {:move, %{offset: {-2, 0}, condition: {:all_of, [{{:equals, 0}, :move_count}, {:not, :path_blocked}, {:not, {:occupied_by, :any}}, {:not, :exposes_king}]}}} -> true
           {:move, %{offset: {-1, 0}}} -> true
           {:conquer, %{offset: {-1, c}}} -> c == -1 or c == 1
           _ -> false
@@ -151,7 +158,6 @@ defmodule ChessPlus.Rock.Duel.Classic do
         rules: Rules.find_rule_ids(rules, fn
           {:move, %{offset: {r, c}}} -> abs(r) < 2 and abs(c) < 2
           {:conquer, %{offset: {r, c}}} -> abs(r) < 2 and abs(c) < 2
-          {:defeat, _} -> true
           {:move_combo, _} -> true
           _ -> false
         end)

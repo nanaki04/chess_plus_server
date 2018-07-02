@@ -1,5 +1,5 @@
 defmodule ChessPlus.Matrix do
-  import ChessPlus.Result, only: [<|>: 2]
+  import ChessPlus.Result, only: [<|>: 2, ~>>: 2]
 
   @type row :: term
   @type column :: term
@@ -124,7 +124,7 @@ defmodule ChessPlus.Matrix do
       :error -> {:error, "Row not found on matrix"}
       ok -> ok
     end
-    <|> fn col ->
+    ~>> fn col ->
       case Map.fetch(col, column) do
         :error -> {:error, "Column not found on matrix"}
         ok -> ok
@@ -139,6 +139,26 @@ defmodule ChessPlus.Matrix do
         true -> add(state, row, column, item)
         false -> state
       end
+    end)
+  end
+
+  @spec find(matrix, (row, column, item -> boolean)) :: item
+  def find(matrix, predicate) do
+    reduce(matrix, :none, fn
+      _, _, _, {:some, item} ->
+        {:some, item}
+      row, column, item, :none ->
+        if predicate.(row, column, item), do: {:some, item}, else: :none
+    end)
+  end
+
+  @spec find_r_c(matrix, (row, column, item -> boolean)) :: item
+  def find_r_c(matrix, predicate) do
+    reduce(matrix, :none, fn
+      _, _, _, {:some, item} ->
+        {:some, item}
+      row, column, item, :none ->
+        if predicate.(row, column, item), do: {:some, {row, column, item}}, else: :none
     end)
   end
 

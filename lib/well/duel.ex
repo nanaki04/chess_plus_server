@@ -2,6 +2,8 @@ defmodule ChessPlus.Well.Duel do
   use ChessPlus.Well
   alias ChessPlus.Matrix
   alias ChessPlus.Result
+  alias ChessPlus.Well.Rules
+  alias ChessPlus.Option
   alias __MODULE__, as: Duel
 
   @type territory :: :classic
@@ -37,6 +39,8 @@ defmodule ChessPlus.Well.Duel do
 
   @type coordinate :: {row, column}
 
+  @type rule :: Rules.rule
+
   @type duelist :: %{
     name: String.t,
     color: color,
@@ -47,7 +51,7 @@ defmodule ChessPlus.Well.Duel do
 
   @type piece :: %{
     color: color,
-    rules: number,
+    rules: [number],
     move_count: number,
     id: id
   }
@@ -76,21 +80,41 @@ defmodule ChessPlus.Well.Duel do
     tiles: tiles
   }
 
+  @type duel_state :: {:turn, :black}
+    | {:turn, :white}
+    | {:turn, :any}
+    | :paused
+    | {:ended, :remise}
+    | {:ended, {:win, :black}}
+    | {:ended, {:win, :white}}
+
   @type duel :: %Duel{
     id: String.t,
     duelists: [duelist],
     board: board,
-    rules: ChessPlus.Well.Rules.rules
+    rules: ChessPlus.Well.Rules.rules,
+    win_conditions: [ChessPlus.Well.Rules.rule],
+    duel_state: duel_state
   }
 
   defstruct id: "",
     duelists: [],
     board: %{},
-    rules: %{}
+    rules: %{},
+    win_conditions: [],
+    duel_state: :paused
 
   @impl(Guardian.Secret)
   def make_initial_state(id) do
     %Duel{id: id}
+  end
+
+  defmodule Color do
+    @type color :: ChessPlus.Well.Duel.color
+
+    @spec inverse(color) :: color
+    def inverse(:white), do: :black
+    def inverse(:black), do: :white
   end
 
   defmodule Row do
@@ -126,7 +150,7 @@ defmodule ChessPlus.Well.Duel do
     def from_num(10), do: :ten |> retn
     def from_num(11), do: :eleven |> retn
     def from_num(12), do: :twelve |> retn
-    def from_num(x), do: {:error, "Column not found while attempting to convert to number: " <> x}
+    def from_num(x), do: {:error, "Column not found while attempting to convert to number: " <> to_string(x)}
   end
 
   defmodule Column do
@@ -162,7 +186,48 @@ defmodule ChessPlus.Well.Duel do
     def from_num(10), do: :j |> retn
     def from_num(11), do: :k |> retn
     def from_num(12), do: :l |> retn
-    def from_num(x), do: {:error, "No column found while attempting to convert from number: " <> x}
+    def from_num(x), do: {:error, "No column found while attempting to convert from number: " <> to_string(x)}
+  end
+
+  defmodule Coordinate do
+    alias ChessPlus.Well.Duel
+    alias ChessPlus.Well.Duel.Row
+    alias ChessPlus.Well.Duel.Column
+    alias ChessPlus.Result
+    import ChessPlus.Result, only: [<~>: 2, <|>: 2, ~>>: 2]
+
+    @type t :: Duel.coordinate
+
+    @spec from_num({number, number}) :: Result.result
+    def from_num({x, y}) do
+      {:ok, &{&1, &2}}
+      <~> Row.from_num(x)
+      <~> Column.from_num(y)
+    end
+
+    @spec to_num(t) :: Result.result
+    def to_num({row, column}) do
+      {:ok, &{&1, &2}}
+      <~> Row.to_num(row)
+      <~> Column.to_num(column)
+    end
+
+    @spec find_offset(t, t) :: Result.result
+    def find_offset({row1, col1}, {row2, col2}) do
+      {:ok, &{&3 - &1, &4 - &2}}
+      <~> Row.to_num(row1)
+      <~> Column.to_num(col1)
+      <~> Row.to_num(row2)
+      <~> Column.to_num(col2)
+    end
+
+    @spec apply_offset(t, {number, number}) :: Result.result
+    def apply_offset({row, col}, {x, y}) do
+      ({:ok, &{&1 + x, &2 + y}}
+      <~> Row.to_num(row)
+      <~> Column.to_num(col))
+      ~>> &from_num/1
+    end
   end
 
   defmodule Duelist do
@@ -188,12 +253,90 @@ defmodule ChessPlus.Well.Duel do
   end
 
   defmodule Piece do
+    alias ChessPlus.Option
+    import ChessPlus.Option, only: [<|>: 2]
+
     @type pieces :: ChessPlus.Well.Duel.pieces
     @type piece :: ChessPlus.Well.Duel.piece
+    @type color :: ChessPlus.Well.Duel.color
+    @type duel :: ChessPlus.Well.Duel.duel
+    @type duelist :: ChessPlus.Well.Duel.duelist
+    @typep state :: duel
+      | duelist
+      | [pieces]
 
     @spec map(pieces, (piece -> piece)) :: pieces
     def map({type, content}, update) do
       {type, update.(content)}
+    end
+
+    @spec find_by_type(state, atom) :: [pieces]
+    def find_by_type(%{duel: {:some, id}}, piece_type) do
+      find_by_type(Duel.fetch(id), piece_type)
+    end
+
+    def find_by_type(%Duel{} = duel, piece_type) do
+      Duel.fetch_piece_where(duel, fn
+        {:some, {type, _}} -> type == piece_type
+        {type, _} -> type == piece_type
+        _ -> false
+      end)
+      |> Enum.map(&Option.unlift/1)
+    end
+
+    def find_by_type(pieces, piece_type) do
+      Enum.filter(pieces, fn {type, _} -> type == piece_type end)
+    end
+
+    @spec find_by_color(state, color) :: [pieces]
+    def find_by_color(%{duel: {:some, id}}, color) do
+      find_by_color(Duel.fetch(id), color)
+    end
+
+    def find_by_color(%Duel{} = duel, color) do
+      Duel.fetch_piece_where(duel, fn
+        {:some, {_, %{color: c}}} -> color == c
+        {_, %{color: c}} -> color == c
+        _ -> false
+      end)
+      |> Enum.map(&Option.unlift/1)
+    end
+
+    def find_by_color(pieces, color) do
+      Enum.filter(pieces, fn
+        {:some, {_, %{color: c}}} -> color == c
+        {_, %{color: c}} -> color == c
+        _ -> false
+      end)
+      |> Enum.map(&Option.unlift/1)
+    end
+
+    @spec find_by_type_and_color(state, atom, color) :: [pieces]
+    def find_by_type_and_color(state, type, color) do
+      find_by_type(state, type)
+      |> find_by_color(color)
+    end
+
+    def find_first([piece | _]), do: {:some, piece}
+    def find_first([]), do: :none
+
+    def find_black_king(state) do
+      find_by_type_and_color(state, :king, :black)
+      |> find_first()
+    end
+
+    def find_white_king(state) do
+      find_by_type_and_color(state, :king, :white)
+      |> find_first()
+    end
+
+    @spec find_piece_coordinate(duel, pieces) :: Option.option
+    def find_piece_coordinate(%Duel{} = duel, piece) do
+      Matrix.find_r_c(duel.board.tiles, fn
+        _, _, %{piece: {:some, p}} -> piece == p
+        _, _, _ -> false
+      end)
+      <|> fn {row, column, _} -> {row, column} end
     end
   end
 
@@ -207,8 +350,8 @@ defmodule ChessPlus.Well.Duel do
     update_duel(sender, fn duel -> %{duel | board: update.(duel.board)} end)
   end
 
-  def update_board(%Duel{id: id, board: board}, update) do
-    Duel.update!(id, &%{&1 | board: update.(board)})
+  def update_board(%Duel{board: board} = duel, update) do
+    {:ok, %{duel | board: update.(board)}}
   end
 
   @spec update_tile(sender | duel, coordinate, (tile -> tile)) :: Result.result
@@ -232,6 +375,106 @@ defmodule ChessPlus.Well.Duel do
     update_board(duel, fn board ->
       %{board | tiles: Matrix.update_where(board.tiles, predicate, update)}
     end)
+  end
+
+  def fetch_tile(%Duel{} = duel, {row, col}) do
+    Matrix.fetch(duel.board.tiles, row, col)
+    |> Option.from_result()
+  end
+
+  def has_tile?(%Duel{} = duel, coord) do
+    fetch_tile(duel, coord)
+    |> Option.to_bool()
+  end
+
+  def move_piece(%Duel{id: _} = duel, {from_row, from_col} = from, to) do
+    piece = Matrix.fetch(duel.board.tiles, from_row, from_col)
+    |> Option.from_result()
+    |> Option.bind(fn tile -> tile.piece end)
+
+    update_tile(duel, from, fn tile -> %{tile | piece: :none} end)
+    |> Result.bind(fn duel -> update_tile(duel, to, fn tile -> %{tile | piece: piece} end) end)
+  end
+
+  def update_piece_where(%Duel{id: _} = duel, predicate, update) do
+    update_tile_where(
+      duel,
+      fn %{piece: piece} -> predicate.(piece) end,
+      fn %{piece: piece} = tile ->
+        if predicate.(piece) do
+          Map.update(tile, :piece, :none, update)
+        else
+          tile
+        end
+      end
+    )
+  end
+
+  def fetch_piece_where(%Duel{id: _} = duel, predicate) do
+    Matrix.reduce(duel.board.tiles, [], fn _, _, tile, acc ->
+      if predicate.(tile.piece), do: [tile.piece | acc], else: acc
+    end)
+  end
+
+  def fetch_piece(%Duel{} = duel, coord) do
+    fetch_tile(duel, coord)
+    |> Option.bind(fn tile -> tile.piece end)
+  end
+
+  def fetch_rules(%Duel{rules: rules}), do: rules
+
+  def fetch_rules(%{duel: {:some, id}}) do
+    fetch(id)
+    |> fetch_rules()
+  end
+
+  def fetch_piece_rules(%Duel{} = duel, {_, %{rules: rules}}) do
+    fetch_rules(duel)
+    |> Rules.find_rules(rules)
+  end
+
+  def fetch_piece_rules(%{duel: {:some, id}}, piece) do
+    fetch(id)
+    |> fetch_piece_rules(piece)
+  end
+
+  def fetch_piece_rules(%Duel{} = duel, {_, %{rules: rules}}, rule_type) do
+    fetch_rules(duel)
+    |> Rules.find_rules(rules, rule_type)
+  end
+
+  def fetch_piece_rules(%{duel: {:some, id}}, piece, rule_type) do
+    fetch(id)
+    |> fetch_piece_rules(piece, rule_type)
+  end
+
+  @spec find_rules_targetting_coord(duel, coordinate, pieces) :: [Rules.rule]
+  def find_rules_targetting_coord(%Duel{} = duel, coordinate, piece) do
+    with rules <- fetch_piece_rules(duel, piece),
+         {:some, piece_coordinate} <- Duel.Piece.find_piece_coordinate(duel, piece)
+    do
+      offset = Duel.Coordinate.find_offset(piece_coordinate, coordinate)
+
+      Enum.filter(rules, fn
+        {:move, %{offset: rule_offset}} -> offset == {:ok, rule_offset}
+        {:conquer, %{offset: rule_offset}} -> offset == {:ok, rule_offset}
+        _ -> false
+      end)
+    else
+      []
+    end
+  end
+
+  @spec find_rule_target_coord(duel, Rules.rule, Option.option) :: Option.option
+  def find_rule_target_coord(%Duel{} = duel, {_, %{offset: offset}}, {:some, piece}) do
+    Duel.Piece.find_piece_coordinate(duel, piece)
+    |> Option.map(fn coord -> Duel.Coordinate.apply_offset(coord, offset) end)
+  end
+  def find_rule_target_coord(_, _, _), do: :none
+
+  def find_rule_target(%Duel{} = duel, rule, piece) do
+    find_rule_target_coord(duel, rule, piece)
+    |> Option.map(fn coord -> fetch_piece(duel, coord) end)
   end
 
   def map_duelists(%{duel: {:some, id}}, update) do
@@ -260,6 +503,13 @@ defmodule ChessPlus.Well.Duel do
     |> update.()
   end
 
+  def fetch_player(duel, sender) do
+    case Enum.find(duel.duelists, fn %{name: name} -> name == sender.name end) do
+      nil -> :none
+      duelist -> {:some, duelist}
+    end
+  end
+
   def is_player?(%{duel: {:some, id}} = player, color) do
     Duel.fetch(id)
     |> is_player?(color, player)
@@ -267,6 +517,19 @@ defmodule ChessPlus.Well.Duel do
 
   def is_player?(duel, color, sender) do
     map_player(duel, fn player -> player.color == color end, sender)
+  end
+
+  def fetch_player_color(duel, sender) do
+    fetch_player(duel, sender)
+    |> Option.map(fn %{color: color} -> color end)
+  end
+
+  def update_duel_state(duel, updater) when is_function(updater, 1) do
+    %Duel{duel | duel_state: updater.(duel.duel_state)}
+  end
+
+  def update_duel_state(duel, state) do
+    %Duel{duel | duel_state: state}
   end
 
 end

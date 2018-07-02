@@ -20,6 +20,9 @@ defmodule ChessPlus.ObserverRegistry do
     ],
     duel_deleted: [
       ChessPlus.Flow.OpenDuelRegistry.UnregisterDuel
+    ],
+    piece_moved: [
+      ChessPlus.Flow.Duel.UpdateDuelState
     ]
   ]
 end
