@@ -99,7 +99,7 @@ defmodule ChessPlus.Delta.VerifyRules do
   def can_conquer_black_king?(duel, options \\ []) do
     opponent_pieces = Piece.find_by_color(duel, :white)
 
-    (((Piece.find_black_king(duel)
+    (Piece.find_black_king(duel)
     ~>> fn king -> Piece.find_piece_coordinate(duel, king) end
     <|> fn coord -> can_any_conquer?(coord, opponent_pieces, duel, options) end)
     |> Option.or_else(false)

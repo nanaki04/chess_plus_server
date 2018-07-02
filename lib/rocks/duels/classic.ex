@@ -94,7 +94,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
       pawn: {:pawn, %{
         color: :black,
         rules: Rules.find_rule_ids(rules, fn
-          {:move, %{offset: {2, 0}, condition: {:all_of, [{{:equals, 0}, :move_count}, {:not, :path_blocked}, {:not, {:occupied_by, :any}}]}}} -> true
+          {:move, %{offset: {2, 0}, condition: {:all_of, [{{:equals, 0}, :move_count}, {:not, :path_blocked}, {:not, {:occupied_by, :any}}, {:not, :exposes_king}]}}} -> true
           {:move, %{offset: {1, 0}}} -> true
           {:conquer, %{offset: {1, x}}} -> x == -1 or x == 1
           _ -> false
@@ -147,7 +147,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
       pawn: {:pawn, %{
         color: :white,
         rules: Rules.find_rule_ids(rules, fn
-          {:move, %{offset: {-2, 0}, condition: {:all_of, [{{:equals, 0}, :move_count}, {:not, :path_blocked}, {:not, {:occupied_by, :any}}]}}} -> true
+          {:move, %{offset: {-2, 0}, condition: {:all_of, [{{:equals, 0}, :move_count}, {:not, :path_blocked}, {:not, {:occupied_by, :any}}, {:not, :exposes_king}]}}} -> true
           {:move, %{offset: {-1, 0}}} -> true
           {:conquer, %{offset: {-1, c}}} -> c == -1 or c == 1
           _ -> false

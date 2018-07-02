@@ -82,6 +82,7 @@ defmodule ChessPlus.Gateway.Tcp do
 
   def handle_call({:send, wave, %{tcp_port: port}}, _, state) do
     ChessPlus.Logger.log(wave)
+    File.write("log.json", wave)
     {:reply, :gen_tcp.send(port, wave), state}
   end
 

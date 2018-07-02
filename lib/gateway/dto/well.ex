@@ -121,7 +121,7 @@ defmodule ChessPlus.Dto.Well do
     def export(:other), do: {:ok, %{"Type" => "Other"}}
     def export({:player, color}) do
       Color.export(color)
-      <|> fn c -> %{"Type" => "Other", "Player" => c} end
+      <|> fn c -> %{"Type" => "Player", "Player" => c} end
     end
     def export(_), do: {:error, "Failed to export DuelistType"}
 
@@ -376,80 +376,92 @@ defmodule ChessPlus.Dto.Well do
   defmodule Piece do
     @type dto :: term
     @spec export(WellDuel.pieces) :: Result.result
-    def export({:king, %{color: color, rules: rules, id: id}}) do
-      {:ok, &%{"Type" => "King", "Color" => &1, "Rules" => &2, "Id" => &3}}
+    def export({:king, %{color: color, rules: rules, id: id, move_count: move_count}}) do
+      {:ok, &%{"Type" => "King", "Color" => &1, "Rules" => &2, "Id" => &3, "MoveCount" => &4}}
       <~> Color.export(color)
       <~> {:ok, rules}
       <~> {:ok, id}
+      <~> {:ok, move_count}
     end
-    def export({:queen, %{color: color, rules: rules, id: id}}) do
-      {:ok, &%{"Type" => "Queen", "Color" => &1, "Rules" => &2, "Id" => &3}}
+    def export({:queen, %{color: color, rules: rules, id: id, move_count: move_count}}) do
+      {:ok, &%{"Type" => "Queen", "Color" => &1, "Rules" => &2, "Id" => &3, "MoveCount" => &4}}
       <~> Color.export(color)
       <~> {:ok, rules}
       <~> {:ok, id}
+      <~> {:ok, move_count}
     end
-    def export({:rook, %{color: color, rules: rules, id: id}}) do
-      {:ok, &%{"Type" => "Rook", "Color" => &1, "Rules" => &2, "Id" => &3}}
+    def export({:rook, %{color: color, rules: rules, id: id, move_count: move_count}}) do
+      {:ok, &%{"Type" => "Rook", "Color" => &1, "Rules" => &2, "Id" => &3, "MoveCount" => &4}}
       <~> Color.export(color)
       <~> {:ok, rules}
       <~> {:ok, id}
+      <~> {:ok, move_count}
     end
-    def export({:bishop, %{color: color, rules: rules, id: id}}) do
-      {:ok, &%{"Type" => "Bishop", "Color" => &1, "Rules" => &2, "Id" => &3}}
+    def export({:bishop, %{color: color, rules: rules, id: id, move_count: move_count}}) do
+      {:ok, &%{"Type" => "Bishop", "Color" => &1, "Rules" => &2, "Id" => &3, "MoveCount" => &4}}
       <~> Color.export(color)
       <~> {:ok, rules}
       <~> {:ok, id}
+      <~> {:ok, move_count}
     end
-    def export({:knight, %{color: color, rules: rules, id: id}}) do
-      {:ok, &%{"Type" => "Knight", "Color" => &1, "Rules" => &2, "Id" => &3}}
+    def export({:knight, %{color: color, rules: rules, id: id, move_count: move_count}}) do
+      {:ok, &%{"Type" => "Knight", "Color" => &1, "Rules" => &2, "Id" => &3, "MoveCount" => &4}}
       <~> Color.export(color)
       <~> {:ok, rules}
       <~> {:ok, id}
+      <~> {:ok, move_count}
     end
-    def export({:pawn, %{color: color, rules: rules, id: id}}) do
-      {:ok, &%{"Type" => "Pawn", "Color" => &1, "Rules" => &2, "Id" => &3}}
+    def export({:pawn, %{color: color, rules: rules, id: id, move_count: move_count}}) do
+      {:ok, &%{"Type" => "Pawn", "Color" => &1, "Rules" => &2, "Id" => &3, "MoveCount" => &4}}
       <~> Color.export(color)
       <~> {:ok, rules}
       <~> {:ok, id}
+      <~> {:ok, move_count}
     end
     def export(_), do: {:error, "Failed to export Piece"}
 
     @spec imprt(dto) :: Result.result
-    def imprt(%{"Type" => "King", "Color" => color, "Rules" => rules, "Id" => id}) do
-      {:ok, &{:king, %{color: &1, rules: &2, id: &3}}}
+    def imprt(%{"Type" => "King", "Color" => color, "Rules" => rules, "Id" => id, "MoveCount" => move_count}) do
+      {:ok, &{:king, %{color: &1, rules: &2, id: &3, move_count: &4}}}
       <~> Color.imprt(color)
       <~> {:ok, rules}
       <~> {:ok, id}
+      <~> {:ok, move_count}
     end
-    def imprt(%{"Type" => "Queen", "Color" => color, "Rules" => rules, "Id" => id}) do
-      {:ok, &{:queen, %{color: &1, rules: &2, id: &3}}}
+    def imprt(%{"Type" => "Queen", "Color" => color, "Rules" => rules, "Id" => id, "MoveCount" => move_count}) do
+      {:ok, &{:queen, %{color: &1, rules: &2, id: &3, move_count: &4}}}
       <~> Color.imprt(color)
       <~> {:ok, rules}
       <~> {:ok, id}
+      <~> {:ok, move_count}
     end
-    def imprt(%{"Type" => "Rook", "Color" => color, "Rules" => rules, "Id" => id}) do
-      {:ok, &{:rook, %{color: &1, rules: &2, id: &3}}}
+    def imprt(%{"Type" => "Rook", "Color" => color, "Rules" => rules, "Id" => id, "MoveCount" => move_count}) do
+      {:ok, &{:rook, %{color: &1, rules: &2, id: &3, move_count: &4}}}
       <~> Color.imprt(color)
       <~> {:ok, rules}
       <~> {:ok, id}
+      <~> {:ok, move_count}
     end
-    def imprt(%{"Type" => "Bishop", "Color" => color, "Rules" => rules, "Id" => id}) do
-      {:ok, &{:bishop, %{color: &1, rules: &2, id: &3}}}
+    def imprt(%{"Type" => "Bishop", "Color" => color, "Rules" => rules, "Id" => id, "MoveCount" => move_count}) do
+      {:ok, &{:bishop, %{color: &1, rules: &2, id: &3, move_count: &4}}}
       <~> Color.imprt(color)
       <~> {:ok, rules}
       <~> {:ok, id}
+      <~> {:ok, move_count}
     end
-    def imprt(%{"Type" => "Knight", "Color" => color, "Rules" => rules, "Id" => id}) do
-      {:ok, &{:knight, %{color: &1, rules: &2, id: &3}}}
+    def imprt(%{"Type" => "Knight", "Color" => color, "Rules" => rules, "Id" => id, "MoveCount" => move_count}) do
+      {:ok, &{:knight, %{color: &1, rules: &2, id: &3, move_count: &4}}}
       <~> Color.imprt(color)
       <~> {:ok, rules}
       <~> {:ok, id}
+      <~> {:ok, move_count}
     end
-    def imprt(%{"Type" => "Pawn", "Color" => color, "Rules" => rules, "Id" => id}) do
-      {:ok, &{:pawn, %{color: &1, rules: &2, id: &3}}}
+    def imprt(%{"Type" => "Pawn", "Color" => color, "Rules" => rules, "Id" => id, "MoveCount" => move_count}) do
+      {:ok, &{:pawn, %{color: &1, rules: &2, id: &3, move_count: &4}}}
       <~> Color.imprt(color)
       <~> {:ok, rules}
       <~> {:ok, id}
+      <~> {:ok, move_count}
     end
     def imprt(_), do: {:error, "Failed to import Piece"}
   end
@@ -633,23 +645,23 @@ defmodule ChessPlus.Dto.Well do
   defmodule DuelState do
     @type dto :: term
     @spec export(ChessPlus.Well.Duel.duel_state) :: Result.result
-    def export({:turn, :black}), do: {:ok, %{"Type" => "Turn", "Value" => "Black"}}
-    def export({:turn, :white}), do: {:ok, %{"Type" => "Turn", "Value" => "White"}}
-    def export({:turn, :any}), do: {:ok, %{"Type" => "Turn", "Value" => "Any"}}
+    def export({:turn, :black}), do: {:ok, %{"Type" => "Turn", "Turn" => %{"Type" => "Player", "Player" => "Black"}}}
+    def export({:turn, :white}), do: {:ok, %{"Type" => "Turn", "Turn" => %{"Type" => "Player", "Player" => "White"}}}
+    def export({:turn, :any}), do: {:ok, %{"Type" => "Turn", "Turn" => "Any"}}
     def export(:paused), do: {:ok, %{"Type" => "Paused"}}
-    def export({:ended, :remise}), do: {:ok, %{"Type" => "Ended", "Value" => "Remise"}}
-    def export({:ended, {:win, :black}}), do: {:ok, %{"Type" => "Ended", "Value" => %{"Type" => "Win", "Value" => "Black"}}}
-    def export({:ended, {:win, :white}}), do: {:ok, %{"Type" => "Ended", "Value" => %{"Type" => "Win", "Value" => "White"}}}
+    def export({:ended, :remise}), do: {:ok, %{"Type" => "Ended", "Ended" => "Remise"}}
+    def export({:ended, {:win, :black}}), do: {:ok, %{"Type" => "Ended", "Ended" => %{"Type" => "Win", "Value" => "Black"}}}
+    def export({:ended, {:win, :white}}), do: {:ok, %{"Type" => "Ended", "Ended" => %{"Type" => "Win", "Value" => "White"}}}
     def export(_), do: {:error, "Failed to export duel_state"}
 
     @spec imprt(dto) :: Result.result
-    def imprt(%{"Type" => "Turn", "Value" => "Black"}), do: {:ok, {:turn, :black}}
-    def imprt(%{"Type" => "Turn", "Value" => "White"}), do: {:ok, {:turn, :white}}
-    def imprt(%{"Type" => "Turn", "Value" => "Any"}), do: {:ok, {:turn, :any}}
+    def imprt(%{"Type" => "Turn", "Turn" => %{"Type" => "Player", "Player" => "Black"}}), do: {:ok, {:turn, :black}}
+    def imprt(%{"Type" => "Turn", "Turn" => %{"Type" => "Player", "Player" => "White"}}), do: {:ok, {:turn, :white}}
+    def imprt(%{"Type" => "Turn", "Turn" => "Any"}), do: {:ok, {:turn, :any}}
     def imprt(%{"Type" => "Paused"}), do: {:ok, :paused}
-    def imprt(%{"Type" => "Ended", "Value" => "Remise"}), do: {:ok, {:ended, :remise}}
-    def imprt(%{"Type" => "Ended", "Value" => %{"Type" => "Win", "Value" => "Black"}}), do: {:ok, {:ended, {:win, :black}}}
-    def imprt(%{"Type" => "Ended", "Value" => %{"Type" => "Win", "Value" => "White"}}), do: {:ok, {:ended, {:win, :white}}}
+    def imprt(%{"Type" => "Ended", "Ended" => "Remise"}), do: {:ok, {:ended, :remise}}
+    def imprt(%{"Type" => "Ended", "Ended" => %{"Type" => "Win", "Value" => "Black"}}), do: {:ok, {:ended, {:win, :black}}}
+    def imprt(%{"Type" => "Ended", "Ended" => %{"Type" => "Win", "Value" => "White"}}), do: {:ok, {:ended, {:win, :white}}}
     def imprt(_), do: {:error, "Failed to import DuelState"}
   end
 
