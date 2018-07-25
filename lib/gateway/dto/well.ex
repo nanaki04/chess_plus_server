@@ -136,6 +136,24 @@ defmodule ChessPlus.Dto.Well do
     def imprt(_), do: {:error, "Failed to import DuelistType"}
   end
 
+  defmodule PieceType do
+    def export(:pawn), do: {:ok, "Pawn"}
+    def export(:bishop), do: {:ok, "Bishop"}
+    def export(:knight), do: {:ok, "Knight"}
+    def export(:rook), do: {:ok, "Rook"}
+    def export(:queen), do: {:ok, "Queen"}
+    def export(:king), do: {:ok, "King"}
+    def export(p), do: {:error, "No such PieceType: " <> p}
+
+    def imprt("Pawn"), do: {:ok, :pawn}
+    def imprt("Bishop"), do: {:ok, :bishop}
+    def imprt("Knight"), do: {:ok, :knight}
+    def imprt("Rook"), do: {:ok, :rook}
+    def imprt("Queen"), do: {:ok, :queen}
+    def imprt("King"), do: {:ok, :king}
+    def imprt(p), do: {:error, "No such PieceType: " <> p}
+  end
+
   defmodule Condition do
     @type dto :: term
     @spec export(WellRules.condition) :: Result.result
@@ -150,6 +168,15 @@ defmodule ChessPlus.Dto.Well do
     def export(:conquerable), do: {:ok, %{"Type" => "Conquerable"}}
     def export(:movable), do: {:ok, %{"Type" => "Movable"}}
     def export(:defendable), do: {:ok, %{"Type" => "Defendable"}}
+    def export(:exposed_while_moving), do: {:ok, %{"Type" => "ExposedWhileMoving"}}
+    def export({:other_piece_type, piece_type}) do
+      PieceType.export(piece_type)
+      <|> fn t -> %{"Type" => "OtherPieceType", "OtherPieceType" => t} end
+    end
+    def export({:other_owner, owner}) do
+      DuelistType.export(owner)
+      <|> fn d -> %{"Type" => "OtherOwner", "OtherOwner" => d} end
+    end
     def export(_), do: {:error, "Failed to export Condition"}
 
     @spec imprt(dto) :: Result.result
@@ -164,6 +191,15 @@ defmodule ChessPlus.Dto.Well do
     def imprt(%{"Type" => "Conquerable"}), do: {:ok, :conquerable}
     def imprt(%{"Type" => "Movable"}), do: {:ok, :movable}
     def imprt(%{"Type" => "Defendable"}), do: {:ok, :defendable}
+    def imprt(%{"Type" => "ExposedWhileMoving"}), do: {:ok, :exposed_while_moving}
+    def imprt(%{"Type" => "OtherPieceType", "OtherPieceType" => piece_type}) do
+      PieceType.imprt(piece_type)
+      <|> fn t -> {:other_piece_type, t} end
+    end
+    def imprt(%{"Type" => "OtherOwner", "OtherOwner" => owner}) do
+      DuelistType.imprt(owner)
+      <|> fn d -> {:other_owner, d} end
+    end
     def imprt(_), do: {:error, "Failed to import Condition"}
   end
 

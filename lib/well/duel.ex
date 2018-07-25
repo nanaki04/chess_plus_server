@@ -56,6 +56,13 @@ defmodule ChessPlus.Well.Duel do
     id: id
   }
 
+  @type piece_type :: :king
+    | :queen
+    | :rook
+    | :bishop
+    | :knight
+    | :pawn
+
   @type pieces :: {:king, piece}
     | {:queen, piece}
     | {:rook, piece}

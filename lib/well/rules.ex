@@ -1,5 +1,7 @@
 defmodule ChessPlus.Well.Rules do
 
+  @type piece_type :: ChessPlus.Well.Duel.piece_type
+
   @type color :: :black
     | :white
 
@@ -16,6 +18,9 @@ defmodule ChessPlus.Well.Rules do
     | :conquerable
     | :movable
     | :defendable
+    | {:other_piece_type, piece_type}
+    | {:other_owner, duelist_type}
+    | :exposed_while_moving
 
   @type operator :: :is
     | :not

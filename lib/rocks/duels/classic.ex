@@ -54,7 +54,38 @@ defmodule ChessPlus.Rock.Duel.Classic do
     ++ (Enum.map([{1, 2}, {2, 1}], &Rules.new_conquer(&1, {:all_of, [{:is, {:occupied_by, :other}}, {:not, :exposes_king}]}))
       |> Rules.quadra_mirror_conquers())
 
-    # TODO move combo
+    # rochades
+    ++ [{:move_combo, %{
+      other: {0, 3},
+      my_movement: {0, 2},
+      other_movement: {0, -2},
+      condition: {
+        :all_of, [
+          {:not, :path_blocked},
+          {:is, {:other_piece_type, :rook}},
+          {:is, {:other_owner, :self}},
+          {{:equals, 0}, :move_count},
+          {:not, :exposed_while_moving},
+          {:not, {:occupied_by, :any}},
+        ]
+      }
+    }},
+
+    {:move_combo, %{
+      other: {0, -4},
+      my_movement: {0, -3},
+      other_movement: {0, 3},
+      condition: {
+        :all_of, [
+          {:not, :path_blocked},
+          {:is, {:other_piece_type, :rook}},
+          {:is, {:other_owner, :self}},
+          {{:equals, 0}, :move_count},
+          {:not, :exposed_while_moving},
+          {:not, {:occupied_by, :any}},
+        ]
+      }
+    }}]
 
     # win conditions
     ++ [{:defeat, %{condition: {:all_of, [{:not, :movable}, {:is, :exposes_king}]}}}]
