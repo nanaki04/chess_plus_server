@@ -201,7 +201,7 @@ defmodule ChessPlus.Well.Duel do
     alias ChessPlus.Well.Duel.Row
     alias ChessPlus.Well.Duel.Column
     alias ChessPlus.Result
-    import ChessPlus.Result, only: [<~>: 2, <|>: 2, ~>>: 2]
+    import ChessPlus.Result, only: [<~>: 2, ~>>: 2]
 
     @type t :: Duel.coordinate
 
@@ -345,14 +345,16 @@ defmodule ChessPlus.Well.Duel do
     end
 
     @spec find_piece_coordinate(duel, pieces) :: Option.option
-    def find_piece_coordinate(%Duel{} = duel, piece) do
+    def find_piece_coordinate(%Duel{} = duel, {_, piece}) do
       Matrix.find_r_c(duel.board.tiles, fn
-        _, _, %{piece: {:some, p}} -> piece == p
+        _, _, %{piece: {:some, {_, p}}} -> piece.id == p.id
         _, _, _ -> false
       end)
       <|> fn {row, column, _} -> {row, column} end
     end
   end
+
+  def find_piece_coordinate(%Duel{}, _), do: :none
 
   def update_duel(%{duel: {:some, id}}, update) do
     {:ok, Duel.update!(id, update)}
@@ -440,7 +442,7 @@ defmodule ChessPlus.Well.Duel do
   def increment_piece_move_count(%Duel{} = duel, coord) do
     update_piece(duel, coord, fn
       :none -> :none
-      {:some, piece} -> {:some, Map.update(piece, :move_count, 1, &(&1 + 1))}
+      {:some, piece} -> {:some, Piece.map(piece, fn p ->  Map.update(p, :move_count, 1, &(&1 + 1)) end)}
     end)
   end
 

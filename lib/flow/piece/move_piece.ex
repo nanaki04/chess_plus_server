@@ -15,12 +15,15 @@ defmodule ChessPlus.Flow.MovePiece do
   do
     duel = Duel.fetch(id)
 
+    IO.inspect(id)
+    IO.inspect(to)
+    IO.inspect(piece)
     Duel.find_rules_targetting_coord(duel, to, piece)
     |> Rules.sort_rules()
     |> Option.from_list()
     |> Option.map(&Kernel.hd/1)
     |> Option.map(fn rule -> apply_move_rule(duel, rule, ampl) end)
-    |> Option.to_result("no rules?")
+    |> Option.to_result()
     |> Result.flatten()
     |> Result.map(fn {duel, waves} ->
       Duel.update!(id, fn _ -> duel end)
@@ -38,9 +41,8 @@ defmodule ChessPlus.Flow.MovePiece do
     maybe_other_target = Coordinate.apply_offset(maybe_other_coord, other_movement)
 
     ({:some, fn other_coord, other_piece, other_target ->
-      duel
-      |> SimulateRules.simulate_rule(rule, {:some, piece})
-      |> Result.bind(fn duel -> Duel.increment_piece_move_count(duel, from) end)
+      Duel.increment_piece_move_count(duel, from)
+      |> Result.bind(fn duel -> SimulateRules.simulate_rule(duel, rule, {:some, piece}) end)
       |> Result.map(fn duel ->
         waves = Duel.map_duelists(duel, fn duelist ->
           [
@@ -56,7 +58,7 @@ defmodule ChessPlus.Flow.MovePiece do
     <~> maybe_other_coord
     <~> maybe_other_piece
     <~> maybe_other_target)
-    |> Option.to_result(to_string(Option.to_bool(maybe_other_coord)) <> to_string(Option.to_bool(maybe_other_piece)) <> to_string(Option.to_bool(maybe_other_target)))
+    |> Option.to_result()
     |> Result.flatten()
   end
 
@@ -65,9 +67,8 @@ defmodule ChessPlus.Flow.MovePiece do
     {_, %{offset: _}} = rule,
     %{piece: piece, from: from} = ampl)
   do
-    duel
-    |> SimulateRules.simulate_rule(rule, {:some, piece})
-    |> Result.bind(fn duel -> Duel.increment_piece_move_count(duel, from) end)
+    Duel.increment_piece_move_count(duel, from)
+    |> Result.bind(fn duel -> SimulateRules.simulate_rule(duel, rule, {:some, piece}) end)
     |> Result.map(fn duel ->
       waves = Duel.map_duelists(duel, fn duelist ->
         {:tcp, duelist, {{:piece, :conquer}, ampl}}

@@ -18,6 +18,7 @@ defmodule ChessPlus.Delta.SimulateRules do
   def simulate_rule(_, {:move_combo, _}, :none), do: {:error, "No piece to simulate move combo rule"}
   def simulate_rule(duel, {:move, %{offset: offset}}, {:some, piece}) do
     (Piece.find_piece_coordinate(duel, piece)
+    |> IO.inspect(label: "piece coord")
     ~>> fn coord -> (Coordinate.apply_offset(coord, offset) |> Option.from_result()) <|> &{coord, &1} end
     <|> fn {from, to} ->
       if Duel.has_tile?(duel, to) do
