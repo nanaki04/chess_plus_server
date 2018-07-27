@@ -73,7 +73,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
 
     {:move_combo, %{
       other: {0, -4},
-      my_movement: {0, -3},
+      my_movement: {0, -2},
       other_movement: {0, 3},
       condition: {
         :all_of, [

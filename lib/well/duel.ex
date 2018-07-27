@@ -228,13 +228,20 @@ defmodule ChessPlus.Well.Duel do
       <~> Column.to_num(col2)
     end
 
-    @spec apply_offset(t, {number, number}) :: Result.result
+    @spec apply_offset(t | Option.option, {number, number}) :: Result.result | Option.option
+    def apply_offset({:some, coord}, offset) do
+      apply_offset(coord, offset)
+      |> Option.from_result()
+    end
+
     def apply_offset({row, col}, {x, y}) do
       ({:ok, &{&1 + x, &2 + y}}
       <~> Row.to_num(row)
       <~> Column.to_num(col))
       ~>> &from_num/1
     end
+
+    def apply_offset(:none, _), do: :none
   end
 
   defmodule Duelist do
@@ -389,9 +396,16 @@ defmodule ChessPlus.Well.Duel do
     |> Option.from_result()
   end
 
+  def has_tile?(%Duel{} = duel, {:some, coord}), do: has_tile?(duel, coord)
+  def has_tile?(_, :none), do: false
+
   def has_tile?(%Duel{} = duel, coord) do
     fetch_tile(duel, coord)
     |> Option.to_bool()
+  end
+
+  def has_tiles?(%Duel{} = duel, tiles) do
+    Enum.all?(tiles, fn t -> has_tile?(duel, t) end)
   end
 
   def move_piece(%Duel{id: _} = duel, {from_row, from_col} = from, to) do
@@ -415,6 +429,19 @@ defmodule ChessPlus.Well.Duel do
         end
       end
     )
+  end
+
+  def update_piece(%Duel{} = duel, coord, update) do
+    update_tile(duel, coord, fn tile ->
+      Map.update(tile, :piece, :none, update)
+    end)
+  end
+
+  def increment_piece_move_count(%Duel{} = duel, coord) do
+    update_piece(duel, coord, fn
+      :none -> :none
+      {:some, piece} -> {:some, Map.update(piece, :move_count, 1, &(&1 + 1))}
+    end)
   end
 
   def fetch_piece_where(%Duel{id: _} = duel, predicate) do
@@ -465,6 +492,7 @@ defmodule ChessPlus.Well.Duel do
       Enum.filter(rules, fn
         {:move, %{offset: rule_offset}} -> offset == {:ok, rule_offset}
         {:conquer, %{offset: rule_offset}} -> offset == {:ok, rule_offset}
+        {:move_combo, %{my_movement: rule_offset}} -> offset == {:ok, rule_offset}
         _ -> false
       end)
     else

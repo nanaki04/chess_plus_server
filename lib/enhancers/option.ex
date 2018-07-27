@@ -62,6 +62,10 @@ defmodule ChessPlus.Option do
   def to_result({:some, value}), do: {:ok, value}
   def to_result(:none), do: {:error, "No value found"}
 
+  @spec to_result(option, String.t) :: result
+  def to_result({:some, value}, _), do: {:ok, value}
+  def to_result(:none, error_message), do: {:error, error_message}
+
   @spec unwrap([option]) :: option
   def unwrap(options) do
     Enum.reduce(options, [], fn
@@ -77,4 +81,8 @@ defmodule ChessPlus.Option do
   @spec to_bool(option) :: boolean
   def to_bool({:some, _}), do: true
   def to_bool(:none), do: false
+
+  @spec from_list([term]) :: option
+  def from_list([]), do: :none
+  def from_list(list), do: {:some, list}
 end

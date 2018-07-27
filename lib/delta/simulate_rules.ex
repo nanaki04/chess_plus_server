@@ -5,7 +5,7 @@ defmodule ChessPlus.Delta.SimulateRules do
   alias ChessPlus.Well.Rules
   alias ChessPlus.Result
   alias ChessPlus.Option
-  import ChessPlus.Option, only: [<|>: 2, ~>>: 2]
+  import ChessPlus.Option, only: [<|>: 2, ~>>: 2, <~>: 2]
 
   @type rule :: Rules.rule
   @type duel :: Duel.duel
@@ -15,6 +15,7 @@ defmodule ChessPlus.Delta.SimulateRules do
   @spec simulate_rule(duel, rule, Option.option) :: Result.result
   def simulate_rule(_, {:move, _}, :none), do: {:error, "No piece to simulate move rule"}
   def simulate_rule(_, {:conquer, _}, :none), do: {:error, "No piece to simulate conquer rule"}
+  def simulate_rule(_, {:move_combo, _}, :none), do: {:error, "No piece to simulate move combo rule"}
   def simulate_rule(duel, {:move, %{offset: offset}}, {:some, piece}) do
     (Piece.find_piece_coordinate(duel, piece)
     ~>> fn coord -> (Coordinate.apply_offset(coord, offset) |> Option.from_result()) <|> &{coord, &1} end
@@ -28,6 +29,27 @@ defmodule ChessPlus.Delta.SimulateRules do
     |> Option.or_else({:error, "Failed to simulate rule"})
   end
   def simulate_rule(duel, {:conquer, rule_content}, piece), do: simulate_rule(duel, {:move, rule_content}, piece)
-  def simulate_rule(_, _, _), do: {:error, "No simulation available for rule"}
+  def simulate_rule(duel, {:move_combo, %{other: other, my_movement: my_movement, other_movement: other_movement}}, {:some, piece}) do
+    maybe_own_coord = Piece.find_piece_coordinate(duel, piece)
+    maybe_other_coord = Coordinate.apply_offset(maybe_own_coord, other)
+    maybe_own_destination = Coordinate.apply_offset(maybe_own_coord, my_movement)
+    maybe_other_destination = Coordinate.apply_offset(maybe_other_coord, other_movement)
 
+    if Duel.has_tiles?(duel, [maybe_own_destination, maybe_other_destination]) do
+      ({:some, fn own_coord, own_destination, other_coord, other_destination ->
+        duel
+        |> Duel.move_piece(own_coord, own_destination)
+        |> Result.bind(fn d -> Duel.move_piece(d, other_coord, other_destination) end)
+      end}
+      <~> maybe_own_coord
+      <~> maybe_own_destination
+      <~> maybe_other_coord
+      <~> maybe_other_destination)
+      |> Option.to_result()
+      |> Result.flatten()
+    else
+      {:error, "One or more of the target coordinates do not exist"}
+    end
+  end
+  def simulate_rule(_, _, _), do: {:error, "No simulation available for rule"}
 end

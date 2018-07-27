@@ -393,4 +393,20 @@ defmodule ChessPlus.Well.Rules do
     |> Enum.filter(fn {type, _} -> type == rule_type end)
   end
 
+  @spec sort_rules([rule]) :: [rule]
+  def sort_rules(rules) do
+    Enum.sort(rules, fn
+      {:move_combo, _}, _ -> true
+      _, {:move_combo, _} -> false
+      {:conquer, _}, _ -> true
+      _, {:conquer, _} -> false
+      {:move, _}, _ -> true
+      _, {:move, _} -> false
+      {:promote, _}, _ -> true
+      _, {:promote, _} -> false
+      {:defeat, _}, _ -> true
+      _, {:defeat, _} -> false
+      {:remise, _}, _ -> true
+    end)
+  end
 end
