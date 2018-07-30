@@ -47,8 +47,10 @@ defmodule ChessPlus.Rock.Duel.Classic do
 
     # conquers
     # straight conquers
-    ++ Rules.gen_and_mirror_conquers_vertical({1, 0}, 7)
-    ++ Rules.gen_and_mirror_conquers_horizontal({0, 1}, 7)
+    ++ Rules.gen_conquers({1, 0}, 7)
+    ++ Rules.gen_conquers({-1, 0}, 7)
+    ++ Rules.gen_conquers({0, 1}, 7)
+    ++ Rules.gen_conquers({0, -1}, 7)
     # angle conquers
     ++ Rules.gen_and_quadra_mirror_conquers({1, 1}, 7)
     # knight conquers
