@@ -85,4 +85,8 @@ defmodule ChessPlus.Option do
   @spec from_list([term]) :: option
   def from_list([]), do: :none
   def from_list(list), do: {:some, list}
+
+  @spec from_nullable(nil | term) :: option
+  def from_nullable(nil), do: :none
+  def from_nullable(val), do: {:some, val}
 end

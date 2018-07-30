@@ -15,9 +15,6 @@ defmodule ChessPlus.Flow.MovePiece do
   do
     duel = Duel.fetch(id)
 
-    IO.inspect(id)
-    IO.inspect(to)
-    IO.inspect(piece)
     Duel.find_rules_targetting_coord(duel, to, piece)
     |> Rules.sort_rules()
     |> Option.from_list()

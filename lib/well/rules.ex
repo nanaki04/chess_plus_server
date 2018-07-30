@@ -21,6 +21,8 @@ defmodule ChessPlus.Well.Rules do
     | {:other_piece_type, piece_type}
     | {:other_owner, duelist_type}
     | :exposed_while_moving
+    | {:row, number}
+    | {:column, number}
 
   @type operator :: :is
     | :not
@@ -391,6 +393,15 @@ defmodule ChessPlus.Well.Rules do
   def find_rules(rules, ids, rule_type) do
     find_rules(rules, ids)
     |> Enum.filter(fn {type, _} -> type == rule_type end)
+  end
+
+  @spec filter_on_piece_moved_rules([rule]) :: [rule]
+  def filter_on_piece_moved_rules(rules) do
+    ChessPlus.Logger.log(rules)
+    Enum.filter(rules, fn
+      {:promote, _} -> true
+      _ -> false
+    end)
   end
 
   @spec sort_rules([rule]) :: [rule]

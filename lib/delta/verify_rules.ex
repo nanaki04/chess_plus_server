@@ -1,5 +1,7 @@
 defmodule ChessPlus.Delta.VerifyRules do
   alias ChessPlus.Well.Duel
+  alias ChessPlus.Well.Duel.Row
+  alias ChessPlus.Well.Duel.Column
   alias ChessPlus.Well.Duel.Piece
   alias ChessPlus.Well.Rules
   alias ChessPlus.Option
@@ -189,6 +191,18 @@ defmodule ChessPlus.Delta.VerifyRules do
   @spec verify(t, condition) :: condition_result
   defp verify(_, :always), do: {:conditional, true}
   defp verify(%{piece: {:some, {_, %{move_count: move_count}}}}, :move_count), do: {:numeric, move_count}
+
+  defp verify(%{duel: duel, piece: {:some, piece}}, {:row, row_number}) do
+    Piece.find_piece_coordinate(duel, piece)
+    |> Option.map(fn {row, _} -> {:conditional, Row.to_num(row) == {:ok, row_number}} end)
+    |> Option.or_else({:conditional, false})
+  end
+
+  defp verify(%{duel: duel, piece: {:some, piece}}, {:column, column_number}) do
+    Piece.find_piece_coordinate(duel, piece)
+    |> Option.map(fn {column, _} -> {:conditional, Column.to_num(column) == {:ok, column_number}} end)
+    |> Option.or_else({:conditional, false})
+  end
 
   defp verify(%{is_simulation: true}, :exposes_king) do
     {:ignore_operator, true}

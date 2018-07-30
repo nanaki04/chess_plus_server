@@ -58,6 +58,11 @@ defmodule ChessPlus.Dto.Waves do
     <~> Well.Coordinate.imprt(to)
   end
 
+  def imprt(%{"Location" => %{"Domain" => "Piece", "Invocation" => "Promote"}, "Piece" => piece}) do
+    {:ok, &{{:piece, :promote}, &1}}
+    <~> Well.Piece.imprt(piece)
+  end
+
   def imprt(%{"Location" => %{"Domain" => d, "Invocation" => i}}), do: {:error, "Failed to import Wave: " <> d <> " : " <> i}
   def imprt(w), do: {:error, "Failed to import Wave: " <> Poison.encode!(w)}
 
@@ -123,6 +128,12 @@ defmodule ChessPlus.Dto.Waves do
     <~> Well.Piece.export(amplitude.piece)
     <~> Well.Coordinate.export(amplitude.from)
     <~> Well.Coordinate.export(amplitude.to)
+  end
+
+  def export({{:piece, :promote} = location, amplitude}) do
+    {:ok, &%{"Location" => &1, "Piece" => &2}}
+    <~> export_location(location)
+    <~> Well.Piece.export(amplitude)
   end
 
   def export({{:global, :error} = location, amplitude}) do

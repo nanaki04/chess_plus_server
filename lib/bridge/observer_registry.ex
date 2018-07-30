@@ -22,7 +22,8 @@ defmodule ChessPlus.ObserverRegistry do
       ChessPlus.Flow.OpenDuelRegistry.UnregisterDuel
     ],
     piece_moved: [
-      ChessPlus.Flow.Duel.UpdateDuelState
+      ChessPlus.Flow.Piece.UpdatePieceState,
+      ChessPlus.Flow.Duel.UpdateDuelState,
     ]
   ]
 end

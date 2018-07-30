@@ -63,12 +63,12 @@ defmodule ChessPlus.Well.Duel do
     | :knight
     | :pawn
 
-  @type pieces :: {:king, piece}
-    | {:queen, piece}
-    | {:rook, piece}
-    | {:bishop, piece}
-    | {:knight, piece}
-    | {:pawn, piece}
+  @type piece_template :: {piece_type, %{
+    color: color,
+    rules: [number],
+  }}
+
+  @type pieces :: {piece_type, piece}
 
   @type tile :: %{
     piece: {:some, pieces} | :none,
@@ -101,7 +101,8 @@ defmodule ChessPlus.Well.Duel do
     board: board,
     rules: ChessPlus.Well.Rules.rules,
     win_conditions: [ChessPlus.Well.Rules.rule],
-    duel_state: duel_state
+    duel_state: duel_state,
+    piece_templates: %{black: [piece_template], white: [piece_template]}
   }
 
   defstruct id: "",
@@ -109,7 +110,8 @@ defmodule ChessPlus.Well.Duel do
     board: %{},
     rules: %{},
     win_conditions: [],
-    duel_state: :paused
+    duel_state: :paused,
+    piece_templates: %{black: [], white: []}
 
   @impl(Guardian.Secret)
   def make_initial_state(id) do
@@ -268,10 +270,13 @@ defmodule ChessPlus.Well.Duel do
 
   defmodule Piece do
     alias ChessPlus.Option
+    alias ChessPlus.Result
     import ChessPlus.Option, only: [<|>: 2]
 
     @type pieces :: ChessPlus.Well.Duel.pieces
     @type piece :: ChessPlus.Well.Duel.piece
+    @type piece_type :: ChessPlus.Well.Duel.piece_type
+    @type piece_template :: ChessPlus.Well.Duel.piece_template
     @type color :: ChessPlus.Well.Duel.color
     @type duel :: ChessPlus.Well.Duel.duel
     @type duelist :: ChessPlus.Well.Duel.duelist
@@ -282,6 +287,46 @@ defmodule ChessPlus.Well.Duel do
     @spec map(pieces, (piece -> piece)) :: pieces
     def map({type, content}, update) do
       {type, update.(content)}
+    end
+
+    @spec id(pieces | Option.option) :: Option.option
+    def id({_, %{id: id}}), do: {:some, id}
+    def id({:some, {_, %{id: id}}}), do: {:some, id}
+    def id(_), do: :none
+
+    @spec type_to_rank(piece_type) :: Result.result
+    def type_to_rank(:pawn), do: {:ok, 1}
+    def type_to_rank(:knight), do: {:ok, 2}
+    def type_to_rank(:bishop), do: {:ok, 3}
+    def type_to_rank(:rook), do: {:ok, 4}
+    def type_to_rank(:queen), do: {:ok, 5}
+    def type_to_rank(:king), do: {:ok, 6}
+    def type_to_rank(t), do: {:error, "No such piece type: " <> to_string(t)}
+
+    @spec rank_to_type(number) :: Result.result
+    def rank_to_type(1), do: {:ok, :pawn}
+    def rank_to_type(2), do: {:ok, :knight}
+    def rank_to_type(3), do: {:ok, :bishop}
+    def rank_to_type(4), do: {:ok, :rook}
+    def rank_to_type(5), do: {:ok, :queen}
+    def rank_to_type(6), do: {:ok, :king}
+    def rank_to_type(r), do: {:error, "No piece type for rank: " <> to_string(r)}
+
+    @spec find_template(duel, color, piece_type) :: Option.option
+    def find_template(%Duel{} = duel, color, piece_type) do
+      Enum.find(duel.piece_templates[color], fn
+        {^piece_type, _} -> true
+        _ -> false
+      end)
+      |> Option.from_nullable()
+      |> Option.map(fn {_, template} -> template end)
+    end
+
+    @spec merge_template(pieces | Option.option, piece_template) :: pieces | Option.option
+    def merge_template({:some, piece}, piece_template), do: {:some, merge_template(piece, piece_template)}
+    def merge_template(:none, _), do: :none
+    def merge_template({_, piece}, {piece_type, %{color: color, rules: rules}}) do
+      {piece_type, %{piece | color: color, rules: rules}}
     end
 
     @spec find_by_type(state, atom) :: [pieces]
@@ -352,9 +397,9 @@ defmodule ChessPlus.Well.Duel do
       end)
       <|> fn {row, column, _} -> {row, column} end
     end
-  end
 
-  def find_piece_coordinate(%Duel{}, _), do: :none
+    def find_piece_coordinate(%Duel{}, _), do: :none
+  end
 
   def update_duel(%{duel: {:some, id}}, update) do
     {:ok, Duel.update!(id, update)}
@@ -433,6 +478,13 @@ defmodule ChessPlus.Well.Duel do
     )
   end
 
+  def update_piece_by_id(%Duel{} = duel, id, update) do
+    update_piece_where(duel, fn
+      {:some, {_, %{id: ^id}}} -> true
+      _ -> false
+    end, update)
+  end
+
   def update_piece(%Duel{} = duel, coord, update) do
     update_tile(duel, coord, fn tile ->
       Map.update(tile, :piece, :none, update)
@@ -450,6 +502,15 @@ defmodule ChessPlus.Well.Duel do
     Matrix.reduce(duel.board.tiles, [], fn _, _, tile, acc ->
       if predicate.(tile.piece), do: [tile.piece | acc], else: acc
     end)
+  end
+
+  def fetch_piece_by_id(%Duel{} = duel, id) do
+    fetch_piece_where(duel, fn
+      {:some, {_, %{id: piece_id}}} -> piece_id == id
+      _ -> false
+    end)
+    |> Option.from_list()
+    |> Option.bind(&Kernel.hd/1)
   end
 
   def fetch_piece(%Duel{} = duel, coord) do

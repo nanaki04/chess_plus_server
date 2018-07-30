@@ -177,6 +177,8 @@ defmodule ChessPlus.Dto.Well do
       DuelistType.export(owner)
       <|> fn d -> %{"Type" => "OtherOwner", "OtherOwner" => d} end
     end
+    def export({:row, row_number}), do: {:ok, %{"Type" => "Row", "Row" => row_number}}
+    def export({:column, column_number}), do: {:ok, %{"Type" => "Column", "Column" => column_number}}
     def export(_), do: {:error, "Failed to export Condition"}
 
     @spec imprt(dto) :: Result.result
@@ -200,6 +202,8 @@ defmodule ChessPlus.Dto.Well do
       DuelistType.imprt(owner)
       <|> fn d -> {:other_owner, d} end
     end
+    def imprt(%{"Type" => "Row", "Row" => row_number}), do: {:ok, {:row, row_number}}
+    def imprt(%{"Type" => "Column", "Column" => column_number}), do: {:ok, {:column, column_number}}
     def imprt(_), do: {:error, "Failed to import Condition"}
   end
 

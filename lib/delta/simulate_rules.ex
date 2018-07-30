@@ -16,6 +16,7 @@ defmodule ChessPlus.Delta.SimulateRules do
   def simulate_rule(_, {:move, _}, :none), do: {:error, "No piece to simulate move rule"}
   def simulate_rule(_, {:conquer, _}, :none), do: {:error, "No piece to simulate conquer rule"}
   def simulate_rule(_, {:move_combo, _}, :none), do: {:error, "No piece to simulate move combo rule"}
+  def simulate_rule(_, {:promote, _}, :none), do: {:error, "No piece to simulate promote rule"}
   def simulate_rule(duel, {:move, %{offset: offset}}, {:some, piece}) do
     (Piece.find_piece_coordinate(duel, piece)
     |> IO.inspect(label: "piece coord")
@@ -51,6 +52,19 @@ defmodule ChessPlus.Delta.SimulateRules do
     else
       {:error, "One or more of the target coordinates do not exist"}
     end
+  end
+  def simulate_rule(duel, {:promote, %{ranks: rank}}, {:some, {_, %{id: id, color: color}}}) do
+    Duel.update_piece_by_id(duel, id, fn
+      {:some, piece} ->
+        Piece.rank_to_type(rank)
+        |> Result.bind(fn type ->
+          Option.to_result(Piece.find_template(duel, color, type), "Piece template not found")
+        end)
+        |> Result.map(fn template -> {:some, Piece.merge_template(piece, template)} end)
+        |> Result.or_else({:some, piece})
+      :none ->
+        :none
+    end)
   end
   def simulate_rule(_, _, _), do: {:error, "No simulation available for rule"}
 end

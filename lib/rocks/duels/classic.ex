@@ -19,6 +19,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
       duelists: [],
       board: %{ tiles: tiles },
       rules: rules,
+      piece_templates: pieces,
       win_conditions: Rules.find_rules(rules, fn 
         {:defeat, _} -> true
         {:remise, _} -> true
@@ -87,6 +88,17 @@ defmodule ChessPlus.Rock.Duel.Classic do
       }
     }}]
 
+    # promotions
+    ++ [{:promote, %{
+      ranks: ChessPlus.Well.Duel.Piece.type_to_rank(:queen) |> Result.or_else(0),
+      condition: {:is, {:row, 1}}
+    }},
+
+    {:promote, %{
+      ranks: ChessPlus.Well.Duel.Piece.type_to_rank(:queen) |> Result.or_else(0),
+      condition: {:is, {:row, 8}}
+    }}]
+
     # win conditions
     ++ [{:defeat, %{condition: {:all_of, [{:not, :movable}, {:is, :exposes_king}]}}}]
     ++ [{:remise, %{condition: {:all_of, [{:not, :movable}, {:not, :exposes_king}]}}}]
@@ -128,6 +140,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
           {:move, %{offset: {2, 0}, condition: {:all_of, [{{:equals, 0}, :move_count}, {:not, :path_blocked}, {:not, {:occupied_by, :any}}, {:not, :exposes_king}]}}} -> true
           {:move, %{offset: {1, 0}}} -> true
           {:conquer, %{offset: {1, x}}} -> x == -1 or x == 1
+          {:promote, %{condition: {_, {_, 8}}}} -> true
           _ -> false
         end)
       }},
@@ -181,6 +194,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
           {:move, %{offset: {-2, 0}, condition: {:all_of, [{{:equals, 0}, :move_count}, {:not, :path_blocked}, {:not, {:occupied_by, :any}}, {:not, :exposes_king}]}}} -> true
           {:move, %{offset: {-1, 0}}} -> true
           {:conquer, %{offset: {-1, c}}} -> c == -1 or c == 1
+          {:promote, %{condition: {_, {_, 1}}}} -> true
           _ -> false
         end)
       }},
