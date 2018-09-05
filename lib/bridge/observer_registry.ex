@@ -13,7 +13,8 @@ defmodule ChessPlus.ObserverRegistry do
       ChessPlus.Flow.OpenDuelRegistry.RegisterDuel
     ],
     duel_joined: [
-      ChessPlus.Flow.Player.JoinDuel
+      ChessPlus.Flow.Player.JoinDuel,
+      ChessPlus.Flow.OpenDuelRegistry.UnregisterDuel # TODO needs refactoring if more than 2 players per game would be supported
     ],
     duel_left: [
       ChessPlus.Flow.Player.LeaveDuel

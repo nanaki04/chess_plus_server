@@ -8,4 +8,12 @@ defmodule ChessPlus.Flow.OpenDuelRegistry.UnregisterDuel do
 
     {:ok, []}
   end
+
+  @impl(ChessPlus.Wave)
+  def flow({{:event, :duel_joined}, duel_id}, _) do
+    OpenDuelRegistry.unregister(duel_id)
+
+    {:ok, []}
+  end
+
 end
