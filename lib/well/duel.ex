@@ -399,6 +399,19 @@ defmodule ChessPlus.Well.Duel do
     end
 
     def find_piece_coordinate(%Duel{}, _), do: :none
+
+    @spec find_piece_types(duel) :: [piece_type]
+    def find_piece_types(%Duel{} = duel) do
+      Matrix.map(duel.board.tiles, fn
+        %{piece: {:some, {piece_type, _}}} -> {:some, piece_type}
+        _ -> :none
+      end)
+      |> Matrix.items()
+      |> Enum.flat_map(&(&1))
+      |> Option.unwrap()
+      |> Option.or_else([])
+      |> Enum.uniq()
+    end
   end
 
   def update_duel(%{duel: {:some, id}}, update) do
@@ -606,6 +619,15 @@ defmodule ChessPlus.Well.Duel do
       nil -> :none
       duelist -> {:some, duelist}
     end
+  end
+
+  def is_full?(duel_id) when is_binary(duel_id) do
+    Duel.fetch(duel_id)
+    |> is_full?()
+  end
+
+  def is_full?(duel) do
+    length(duel.duelists) > 1
   end
 
   def is_player?(%{duel: {:some, id}} = player, color) do

@@ -1,6 +1,7 @@
 defmodule ChessPlus.Flow.OpenDuelRegistry.UnregisterDuel do
   use ChessPlus.Wave
   alias ChessPlus.Well.OpenDuelRegistry
+  alias ChessPlus.Well.Duel
 
   @impl(ChessPlus.Wave)
   def flow({{:event, :duel_deleted}, duel}, _) do
@@ -11,7 +12,7 @@ defmodule ChessPlus.Flow.OpenDuelRegistry.UnregisterDuel do
 
   @impl(ChessPlus.Wave)
   def flow({{:event, :duel_joined}, duel_id}, _) do
-    OpenDuelRegistry.unregister(duel_id)
+    if Duel.is_full?(duel_id), do: OpenDuelRegistry.unregister(duel_id)
 
     {:ok, []}
   end

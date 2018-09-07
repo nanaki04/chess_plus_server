@@ -179,6 +179,11 @@ defmodule ChessPlus.Dto.Well do
     end
     def export({:row, row_number}), do: {:ok, %{"Type" => "Row", "Row" => row_number}}
     def export({:column, column_number}), do: {:ok, %{"Type" => "Column", "Column" => column_number}}
+    def export({:remaining_piece_types, piece_types}) do
+      (Enum.map(piece_types, &PieceType.export/1)
+      |> Result.unwrap())
+      <|> fn pt -> %{"Type" => "RemainingPieceTypes", "PieceTypes" => pt} end
+    end
     def export(_), do: {:error, "Failed to export Condition"}
 
     @spec imprt(dto) :: Result.result
@@ -204,6 +209,11 @@ defmodule ChessPlus.Dto.Well do
     end
     def imprt(%{"Type" => "Row", "Row" => row_number}), do: {:ok, {:row, row_number}}
     def imprt(%{"Type" => "Column", "Column" => column_number}), do: {:ok, {:column, column_number}}
+    def imprt(%{"Type" => "RemainingPieceTypes", "PieceTypes" => piece_types}) do
+      (Enum.map(piece_types, &PieceType.imprt/1)
+      |> Result.unwrap())
+      <|> fn pt -> {:remaining_piece_types, pt} end
+    end
     def imprt(_), do: {:error, "Failed to import Condition"}
   end
 
@@ -689,7 +699,7 @@ defmodule ChessPlus.Dto.Well do
     def export({:turn, :white}), do: {:ok, %{"Type" => "Turn", "Turn" => %{"Type" => "Player", "Player" => "White"}}}
     def export({:turn, :any}), do: {:ok, %{"Type" => "Turn", "Turn" => "Any"}}
     def export(:paused), do: {:ok, %{"Type" => "Paused"}}
-    def export({:ended, :remise}), do: {:ok, %{"Type" => "Ended", "Ended" => "Remise"}}
+    def export({:ended, :remise}), do: {:ok, %{"Type" => "Ended", "Ended" => %{"Type" => "Remise"}}}
     def export({:ended, {:win, :black}}), do: {:ok, %{"Type" => "Ended", "Ended" => %{"Type" => "Win", "Value" => "Black"}}}
     def export({:ended, {:win, :white}}), do: {:ok, %{"Type" => "Ended", "Ended" => %{"Type" => "Win", "Value" => "White"}}}
     def export(_), do: {:error, "Failed to export duel_state"}
@@ -699,7 +709,7 @@ defmodule ChessPlus.Dto.Well do
     def imprt(%{"Type" => "Turn", "Turn" => %{"Type" => "Player", "Player" => "White"}}), do: {:ok, {:turn, :white}}
     def imprt(%{"Type" => "Turn", "Turn" => "Any"}), do: {:ok, {:turn, :any}}
     def imprt(%{"Type" => "Paused"}), do: {:ok, :paused}
-    def imprt(%{"Type" => "Ended", "Ended" => "Remise"}), do: {:ok, {:ended, :remise}}
+    def imprt(%{"Type" => "Ended", "Ended" => %{"Type" => "Remise"}}), do: {:ok, {:ended, :remise}}
     def imprt(%{"Type" => "Ended", "Ended" => %{"Type" => "Win", "Value" => "Black"}}), do: {:ok, {:ended, {:win, :black}}}
     def imprt(%{"Type" => "Ended", "Ended" => %{"Type" => "Win", "Value" => "White"}}), do: {:ok, {:ended, {:win, :white}}}
     def imprt(_), do: {:error, "Failed to import DuelState"}

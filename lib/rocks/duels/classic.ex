@@ -104,6 +104,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
     # win conditions
     ++ [{:defeat, %{condition: {:all_of, [{:not, :movable}, {:is, :exposes_king}]}}}]
     ++ [{:remise, %{condition: {:all_of, [{:not, :movable}, {:not, :exposes_king}]}}}]
+    ++ [{:remise, %{condition: {:is, {:remaining_piece_types, [:king]}}}}]
 
     |> Rules.to_map()
   end

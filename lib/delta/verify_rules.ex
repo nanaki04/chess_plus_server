@@ -307,6 +307,10 @@ defmodule ChessPlus.Delta.VerifyRules do
     {:ignore_operator, true}
   end
 
+  defp verify(%{duel: duel}, {:remaining_piece_types, piece_types}) do
+    {:conditional, Piece.find_piece_types(duel) == piece_types}
+  end
+
   # TODO to make dialyzer happy
   defp verify(_, _), do: {:numeric, 0}
 

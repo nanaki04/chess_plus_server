@@ -23,6 +23,7 @@ defmodule ChessPlus.Well.Rules do
     | :exposed_while_moving
     | {:row, number}
     | {:column, number}
+    | {:remaining_piece_types, [piece_type]}
 
   @type operator :: :is
     | :not
