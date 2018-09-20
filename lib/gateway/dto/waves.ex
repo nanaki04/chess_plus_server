@@ -51,6 +51,12 @@ defmodule ChessPlus.Dto.Waves do
     {:ok, {:tile, :deselect}}
   end
 
+  def imprt(%{"Location" => %{"Domain" => "piece", "Invocation" => "add"}, "Piece" => piece, "Coordinate" => coordinate) do
+    {:ok, &{{:piece, :add}, %{piece: &1, coordinate: &2}}}
+    <~> Well.Piece.imprt(piece)
+    <~> Well.Coordinate.imprt(coordinate)
+  end
+
   def imprt(%{"Location" => %{"Domain" => "piece", "Invocation" => "move"}, "Piece" => piece, "From" => from, "To" => to}) do
     {:ok, &{{:piece, :move}, %{piece: &1, from: &2, to: &3}}}
     <~> Well.Piece.imprt(piece)
@@ -58,9 +64,19 @@ defmodule ChessPlus.Dto.Waves do
     <~> Well.Coordinate.imprt(to)
   end
 
-  def imprt(%{"Location" => %{"Domain" => "Piece", "Invocation" => "Promote"}, "Piece" => piece}) do
+  def imprt(%{"Location" => %{"Domain" => "piece", "Invocation" => "remove"}, "Coordinate" => coordinate}) do
+    {:ok, &{{:piece, :remove}, %{coordinate: &1}}}
+    <~> Well.Coordinate.imprt(coordinate)
+  end
+
+  def imprt(%{"Location" => %{"Domain" => "piece", "Invocation" => "promote"}, "Piece" => piece}) do
     {:ok, &{{:piece, :promote}, &1}}
     <~> Well.Piece.imprt(piece)
+  end
+
+  def imprt(%{"Location" => %{"Domain" => "buffs", "Invocation" => "update"}, "buffs" => buffs}) do
+    {:ok, &{{:buffs, :update}, &1}}
+    <~> Well.Buffs.imprt(buffs)
   end
 
   def imprt(%{"Location" => %{"Domain" => d, "Invocation" => i}}), do: {:error, "Failed to import Wave: " <> d <> " : " <> i}
@@ -114,6 +130,12 @@ defmodule ChessPlus.Dto.Waves do
     <~> Well.Color.export(amplitude.player)
   end
 
+  def export({{:piece, :add} = location, amplitude}) do
+    {:ok, &%{"Location" => &1, "Piece" => &2, "Coordinate" => &3}}
+    <~> Well.Piece.export(amplitude.piece)
+    <~> Well.Coordinate.export(amplitude.coordinate)
+  end
+
   def export({{:piece, :move} = location, amplitude}) do
     {:ok, &%{"Location" => &1, "Piece" => &2, "From" => &3, "To" => &4}}
     <~> export_location(location)
@@ -130,10 +152,22 @@ defmodule ChessPlus.Dto.Waves do
     <~> Well.Coordinate.export(amplitude.to)
   end
 
+  def export({{:piece, :remove} = location, amplitude}) do
+    {:ok, &%{"Location" => &1, "Coordinate" => &2}}
+    <~> export_location(location)
+    <~> Well.Coordinate.export(amplitude.coordinate)
+  end
+
   def export({{:piece, :promote} = location, amplitude}) do
     {:ok, &%{"Location" => &1, "Piece" => &2}}
     <~> export_location(location)
     <~> Well.Piece.export(amplitude)
+  end
+
+  def export({{:buffs, :update} = location, amplitude}) do
+    {:ok, &%{"Location" => &1, "Buffs" => &2}}
+    <~> export_location(location)
+    <~> Well.Buffs.export(amplitude)
   end
 
   def export({{:global, :error} = location, amplitude}) do

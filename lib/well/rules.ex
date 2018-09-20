@@ -12,6 +12,7 @@ defmodule ChessPlus.Well.Rules do
 
   @type condition :: :always
     | :move_count
+    | :target_move_count
     | :exposes_king
     | :path_blocked
     | {:occupied_by, duelist_type}
@@ -55,6 +56,12 @@ defmodule ChessPlus.Well.Rules do
     other_movement: {number, number}
   }
 
+  @type conquer_combo :: %{
+    condition: conditions,
+    target_offset: {number, number},
+    my_movement: {number, number}
+  }
+
   @type promote :: %{
     condition: conditions,
     ranks: number
@@ -68,12 +75,20 @@ defmodule ChessPlus.Well.Rules do
     condition: conditions
   }
 
+  @type add_buff_on_move :: %{
+    condition: conditions,
+    target_offset: {number, number},
+    buff_id: number
+  }
+
   @type rule :: {:move, move}
     | {:conquer, conquer}
     | {:move_combo, move_combo}
+    | {:conquer_combo, conquer_combo}
     | {:promote, promote}
     | {:defeat, defeat}
     | {:remise, remise}
+    | {:add_buff_on_move, add_buff_on_move}
 
   @type rules :: %{optional(number) => rule}
 
@@ -401,6 +416,7 @@ defmodule ChessPlus.Well.Rules do
     ChessPlus.Logger.log(rules)
     Enum.filter(rules, fn
       {:promote, _} -> true
+      {:add_buff, _} -> true
       _ -> false
     end)
   end
@@ -410,12 +426,16 @@ defmodule ChessPlus.Well.Rules do
     Enum.sort(rules, fn
       {:move_combo, _}, _ -> true
       _, {:move_combo, _} -> false
+      {:conquer_combo, _}, _ -> true
+      _, {:conquer_combo, _} -> false
       {:conquer, _}, _ -> true
       _, {:conquer, _} -> false
       {:move, _}, _ -> true
       _, {:move, _} -> false
       {:promote, _}, _ -> true
       _, {:promote, _} -> false
+      {:add_buff, _}, _ -> true
+      {_, :add_buff}, _ -> false
       {:defeat, _}, _ -> true
       _, {:defeat, _} -> false
       {:remise, _}, _ -> true

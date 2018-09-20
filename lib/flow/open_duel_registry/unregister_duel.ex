@@ -12,6 +12,7 @@ defmodule ChessPlus.Flow.OpenDuelRegistry.UnregisterDuel do
 
   @impl(ChessPlus.Wave)
   def flow({{:event, :duel_joined}, duel_id}, _) do
+    # TODO make an event for when a duel is full, to prevent the use of the Duel well here
     if Duel.is_full?(duel_id), do: OpenDuelRegistry.unregister(duel_id)
 
     {:ok, []}

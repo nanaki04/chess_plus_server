@@ -159,6 +159,7 @@ defmodule ChessPlus.Dto.Well do
     @spec export(WellRules.condition) :: Result.result
     def export(:always), do: {:ok, %{"Type" => "Always"}}
     def export(:move_count), do: {:ok, %{"Type" => "MoveCount"}}
+    def export(:target_move_count), do: {:ok, %{"Type" => "TargetMoveCount"}}
     def export(:exposes_king), do: {:ok, %{"Type" => "ExposesKing"}}
     def export(:path_blocked), do: {:ok, %{"Type" => "PathBlocked"}}
     def export({:occupied_by, duelist_type}) do
@@ -189,6 +190,7 @@ defmodule ChessPlus.Dto.Well do
     @spec imprt(dto) :: Result.result
     def imprt(%{"Type" => "Always"}), do: {:ok, :always}
     def imprt(%{"Type" => "MoveCount"}), do: {:ok, :move_count}
+    def imprt(%{"Type" => "TargetMoveCount"}), do: {:ok, :target_move_count}
     def imprt(%{"Type" => "ExposesKing"}), do: {:ok, :exposes_king}
     def imprt(%{"Type" => "PathBlocked"}), do: {:ok, :path_blocked}
     def imprt(%{"Type" => "OccupiedBy", "OccupiedBy" => occupied_by}) do
@@ -357,6 +359,32 @@ defmodule ChessPlus.Dto.Well do
       <~> {:ok, [my_movement_r, my_movement_c]}
       <~> {:ok, [other_movement_r, other_movement_c]}
     end
+    def export({
+      :conquer_combo,
+      %{
+        condition: condition,
+        target_offset: {target_r, target_c},
+        my_movement: {my_movement_r, my_movement_c}
+      }
+    }) do
+      {:ok, &%{"Type" => "ConquerCombo", "Condition" => &1, "TargetOffset" => &2, "MyMovement" => &3}}
+      <~> Conditions.export(condition)
+      <~> {:ok, [target_r, target_c]}
+      <~> {:ok, [my_movement_r, my_movement_c]}
+    end
+    def export({
+      :add_buff_on_move,
+      %{
+        condition: condition,
+        target_offset: {target_r, target_c},
+        buff_id: buff_id
+      }
+    }) do
+      {:ok, &%{"Type" => "AddBuffOnMove", "Condition" => &1, "TargetOffset" => &2, "BuffId" => &3}}
+      <~> Conditions.export(condition)
+      <~> {:ok, [target_r, target_c]}
+      <~> {:ok, buff_id}
+    end
     def export({:promote, %{condition: condition, ranks: ranks}}) do
       Conditions.export(condition)
       <|> &%{"Type" => "Promote", "Condition" => &1, "Ranks" => ranks}
@@ -391,6 +419,28 @@ defmodule ChessPlus.Dto.Well do
       <~> {:ok, {other_r, other_c}}
       <~> {:ok, {my_movement_r, my_movement_c}}
       <~> {:ok, {other_movement_r, other_movement_c}}
+    end
+    def imprt(%{
+      "Type" => "ConquerCombo",
+      "Condition" => condition,
+      "TargetOffset" => [target_r, target_c],
+      "MyMovement" => [my_movement_r, my_movement_c]
+    }) do
+      {:ok, &{:conquer_combo, %{condition: &1, target_offset: &2, my_movement: &3}}}
+      <~> Conditions.imprt(condition)
+      <~> {:ok, {target_r, target_c}}
+      <~> {:ok, {my_movement_r, my_movement_c}}
+    end
+    def imprt(%{
+      "Type" => "AddBuffOnMove",
+      "Condition" => condition,
+      "TargetOffset" => [target_r, target_c],
+      "BuffId" => buff_id
+    }) do
+      {:ok, &{:add_buff_on_move, %{condition: &1, target_offset: &2, buff_id: &3}}}
+      <~> Conditions.imprt(condition)
+      <~> {:ok, {target_r, target_c}}
+      <~> buff_id
     end
     def imprt(%{"Type" => "Promote", "Condition" => condition, "Ranks" => ranks}) do
       Conditions.imprt(condition)
@@ -514,6 +564,23 @@ defmodule ChessPlus.Dto.Well do
       <~> {:ok, move_count}
     end
     def imprt(_), do: {:error, "Failed to import Piece"}
+  end
+
+  defmodule Buffs do
+    alias ChessPlus.Well.Duel
+
+    @type dto :: term
+    @type buff :: Duel.active_buff
+
+    @spec export([buff]) :: Result.result
+    def export(buffs) do
+      Enum.map(buffs, fn 
+    end
+
+    @spec imprt(dto) :: Result.result
+    def imprt(dto) do
+
+    end
   end
 
   defmodule TileSelections do

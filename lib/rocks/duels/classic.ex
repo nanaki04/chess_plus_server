@@ -9,10 +9,14 @@ defmodule ChessPlus.Rock.Duel.Classic do
 
   @behaviour ChessPlus.Rock
 
+  @en_passant_buff_black_id 0
+  @en_passant_buff_white_id 1
+
   @impl(ChessPlus.Rock)
   def retrieve() do
     rules = build_rules()
     pieces = build_piece_templates(rules)
+    buffs = build_buffs(rules)
     build_tiles()
     <|> fn tiles -> place_pieces(tiles, pieces) end
     <|> fn tiles -> %Duel{
@@ -25,7 +29,11 @@ defmodule ChessPlus.Rock.Duel.Classic do
         {:remise, _} -> true
         _ -> false
       end),
-      duel_state: {:turn, :white}
+      duel_state: {:turn, :white},
+      buffs: %{
+        active_buffs: [],
+        buffs: buffs
+      }
     } end
   end
 
@@ -90,6 +98,99 @@ defmodule ChessPlus.Rock.Duel.Classic do
       }
     }}]
 
+    # En Passant
+    ++ [{:conquer_combo, %{
+      target_offset: {1, 0},
+      my_movement: {1, 1},
+      condition: {
+        :all_of, [
+          {{:equals, 1}, :target_move_count},
+          {:is, {:other_piece_type, :pawn}},
+          {:is, {:other_owner, :other}}
+        ]
+      }
+    }},
+
+    {:conquer_combo, %{
+      target_offset: {-1, 0},
+      my_movement: {-1, 1},
+      condition: {
+        :all_of, [
+          {{:equals, 1}, :target_move_count},
+          {:is, {:other_piece_type, :pawn}},
+          {:is, {:other_owner, :other}}
+        ]
+      }
+    }},
+
+    {:conquer_combo, %{
+      target_offset: {1, 0},
+      my_movement: {1, -1},
+      condition: {
+        :all_of, [
+          {{:equals, 1}, :target_move_count},
+          {:is, {:other_piece_type, :pawn}},
+          {:is, {:other_owner, :other}}
+        ]
+      }
+    }},
+
+    {:conquer_combo, %{
+      target_offset: {-1, 0},
+      my_movement: {-1, -1},
+      condition: {
+        :all_of, [
+          {{:equals, 1}, :target_move_count},
+          {:is, {:other_piece_type, :pawn}},
+          {:is, {:other_owner, :other}}
+        ]
+      }
+    }},
+
+    {:add_buff_on_move, %{
+      condition: {
+        :all_of, [
+          {{:equals, 1}, :move_count},
+          {:is, {:other_piece_type, :pawn}}
+        ]
+      },
+      buff_id: @en_passant_buff_black_id,
+      target_offset: {1, 0}
+    }},
+
+    {:add_buff_on_move, %{
+      condition: {
+        :all_of, [
+          {{:equals, 1}, :move_count},
+          {:is, {:other_piece_type, :pawn}}
+        ]
+      },
+      buff_id: @en_passant_buff_black_id,
+      target_offset: {-1, 0}
+    }},
+
+    {:add_buff_on_move, %{
+      condition: {
+        :all_of, [
+          {{:equals, 1}, :move_count},
+          {:is, {:other_piece_type, :pawn}}
+        ]
+      },
+      buff_id: @en_passant_buff_white_id,
+      target_offset: {1, 0}
+    }},
+
+    {:add_buff_on_move, %{
+      condition: {
+        :all_of, [
+          {{:equals, 1}, :move_count},
+          {:is, {:other_piece_type, :pawn}}
+        ]
+      },
+      buff_id: @en_passant_buff_white_id,
+      target_offset: {-1, 0}
+    }}]
+
     # promotions
     ++ [{:promote, %{
       ranks: ChessPlus.Well.Duel.Piece.type_to_rank(:queen) |> Result.or_else(0),
@@ -134,8 +235,49 @@ defmodule ChessPlus.Rock.Duel.Classic do
     end
   end
 
+  @spec build_buffs(Rules.rules) :: [ChessPlus.Well.Duel.buff]
+  def build_buffs(rules) do
+    black_conquer_combo_rule_ids = Rules.find_rule_ids(rules, fn
+      {:conquer_combo, %{my_movement: {1, 1}}} -> true
+      {:conquer_combo, %{my_movement: {1, -1}}} -> true
+      _ -> false
+    end)
+
+    white_conquer_combo_rule_ids = Rules.find_rule_ids(rules, fn
+      {:conquer_combo, %{my_movement: {-1, 1}}} -> true
+      {:conquer_combo, %{my_movement: {-1, -1}}} -> true
+      _ -> false
+    end)
+
+    [
+      %{
+        id: 0,
+        duration: {:turn, 1},
+        type: {
+          :add_rule,
+          %{
+            rules: white_conquer_combo_rule_ids
+          }
+        }
+      },
+      %{
+        id: 1,
+        duration: {:turn, 1},
+        type: {
+          :add_rule,
+          %{
+            rules: black_conquer_combo_rule_ids
+          }
+        }
+      }
+    ]
+  end
+
   @spec build_piece_templates(Rules.rules) :: term
   def build_piece_templates(rules) do
+    en_passant_buff_black_id = @en_passant_buff_black_id
+    en_passant_buff_white_id = @en_passant_buff_white_id
+
     black = %{
       pawn: {:pawn, %{
         color: :black,
@@ -144,6 +286,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
           {:move, %{offset: {1, 0}}} -> true
           {:conquer, %{offset: {1, x}}} -> x == -1 or x == 1
           {:promote, %{condition: {_, {_, 8}}}} -> true
+          {:add_buff_on_move, %{buff_id: ^en_passant_buff_black_id}} -> true
           _ -> false
         end)
       }},
@@ -198,6 +341,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
           {:move, %{offset: {-1, 0}}} -> true
           {:conquer, %{offset: {-1, c}}} -> c == -1 or c == 1
           {:promote, %{condition: {_, {_, 1}}}} -> true
+          {:add_buff_on_move, %{buff_id: ^en_passant_buff_white_id}} -> true
           _ -> false
         end)
       }},

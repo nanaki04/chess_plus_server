@@ -41,6 +41,28 @@ defmodule ChessPlus.Well.Duel do
 
   @type rule :: Rules.rule
 
+  @type buff_type :: {:add_rule, %{rules: [number]}}
+
+  @type buff_duration :: {:turn, number}
+
+  @type buff :: %{
+    id: number,
+    type: buff_type,
+    duration: buff_duration
+  }
+
+  @type active_buff :: %{
+    id: number,
+    type: buff_type,
+    duration: buff_duration,
+    piece_id: number
+  }
+
+  @type buffs :: %{
+    active_buffs: [active_buff],
+    buffs: [buff]
+  }
+
   @type duelist :: %{
     name: String.t,
     color: color,
@@ -102,7 +124,8 @@ defmodule ChessPlus.Well.Duel do
     rules: ChessPlus.Well.Rules.rules,
     win_conditions: [ChessPlus.Well.Rules.rule],
     duel_state: duel_state,
-    piece_templates: %{black: [piece_template], white: [piece_template]}
+    piece_templates: %{black: [piece_template], white: [piece_template]},
+    buffs: buffs
   }
 
   defstruct id: "",
@@ -111,7 +134,11 @@ defmodule ChessPlus.Well.Duel do
     rules: %{},
     win_conditions: [],
     duel_state: :paused,
-    piece_templates: %{black: [], white: []}
+    piece_templates: %{black: [], white: []},
+    buffs: %{
+      active_buffs: [],
+      buffs: []
+    }
 
   @impl(Guardian.Secret)
   def make_initial_state(id) do
@@ -414,6 +441,74 @@ defmodule ChessPlus.Well.Duel do
     end
   end
 
+  defmodule Buff do
+    alias ChessPlus.Well.Duel
+    alias ChessPlus.Option
+    alias ChessPlus.Result
+
+    @type buff :: Duel.buff
+    @type buff_type :: Duel.buff_type
+    @type buff_duration :: Duel.buff_duration
+    @type active_buff :: Duel.active_buff
+    @type buffs :: Duel.buffs
+
+    @spec find_buff(duel, number) :: Option.option
+    def find_buff(%Duel{} = duel, id) do
+      duel.buffs.buffs[id]
+      |> Option.from_nullable()
+    end
+
+    @spec update_buffs(duel, fun) :: Result.result
+    def update_buffs(%Duel{} = duel, update) do
+      %{duel | buffs: update.(duel.buffs)}
+      |> Result.retn()
+    end
+
+    @spec update_active_buffs(duel, fun) :: Result.result
+    def update_active_buffs(%Duel{} = duel, update) do
+      update_buffs(duel, fn buffs -> %{buffs | active_buffs: update.(buffs.active_buffs)} end)
+    end
+
+    @spec add_buff(duel, number, number) :: Result.result
+    def add_buff(%Duel{} = duel, buff_id, piece_id) do
+      find_buff(duel, buff_id)
+      |> Option.map(fn buff -> %{buff | piece: piece_id} end)
+      |> Option.to_result("Buff to add not found")
+      |> Result.bind(fn buff -> update_active_buffs(duel, &[buff | &1]) end)
+    end
+
+    @spec remove_buff(duel, number) :: Result.result
+    def remove_buff(%Duel{} = duel, id) do
+      update_active_buffs(duel, fn buffs ->
+        Enum.filter(buffs, fn
+          %{id: ^id} -> false
+          _ -> true
+        end)
+      end)
+    end
+
+    @spec remove_expired_buffs(duel) :: Result.result
+    def remove_expired_buffs(%Duel{} = duel) do
+      update_active_buffs(duel, fn buffs ->
+        Enum.filter(buffs, fn
+          %{duration: {:turn, duration}} -> duration < 0
+          _ -> true
+        end)
+      end)
+    end
+
+    @spec decrement_turn_durations(duel) :: Result.result
+    def decrement_turn_durations(%Duel{} = duel) do
+      update_active_buffs(duel, fn buffs ->
+        Enum.map(buffs, fn
+          %{duration: {:turn, duration}} = buff -> %{buff | duration: duration - 1}
+          buff -> buff
+        end)
+      end)
+    end
+
+  end
+
   def update_duel(%{duel: {:some, id}}, update) do
     {:ok, Duel.update!(id, update)}
   end
@@ -578,6 +673,10 @@ defmodule ChessPlus.Well.Duel do
 
   @spec find_rule_target_coord(duel, Rules.rule, Option.option) :: Option.option
   def find_rule_target_coord(%Duel{} = duel, {_, %{offset: offset}}, {:some, piece}) do
+    Duel.Piece.find_piece_coordinate(duel, piece)
+    |> Option.map(fn coord -> Duel.Coordinate.apply_offset(coord, offset) end)
+  end
+  def find_rule_target_coord(%Duel{} = duel, {_, %{target_offset: offset}}, {:some, piece}) do
     Duel.Piece.find_piece_coordinate(duel, piece)
     |> Option.map(fn coord -> Duel.Coordinate.apply_offset(coord, offset) end)
   end

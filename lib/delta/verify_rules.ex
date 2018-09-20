@@ -190,7 +190,14 @@ defmodule ChessPlus.Delta.VerifyRules do
 
   @spec verify(t, condition) :: condition_result
   defp verify(_, :always), do: {:conditional, true}
+
   defp verify(%{piece: {:some, {_, %{move_count: move_count}}}}, :move_count), do: {:numeric, move_count}
+
+  defp verify(%{duel: duel, piece: {:some, piece}, rule: rule}, :target_move_count) do
+    Duel.find_rule_target(duel, rule, {:some, piece})
+    |> Option.map(fn %{move_count: move_count} -> {:numeric, move_count} end)
+    |> Option.or_else({:ignore_operator, false})
+  end
 
   defp verify(%{duel: duel, piece: {:some, piece}}, {:row, row_number}) do
     Piece.find_piece_coordinate(duel, piece)
