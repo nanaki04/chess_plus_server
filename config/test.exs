@@ -21,7 +21,9 @@ use Mix.Config
 #     config :logger, level: :info
 #
 
-  config :chess_plus_server, port: "1337"
+  config :chess_plus_server,
+    tcp_port: "1338",
+    udp_port: "1337"
 
 # It is also possible to import configuration files, relative to this
 # directory. For example, you can emulate configuration per environment

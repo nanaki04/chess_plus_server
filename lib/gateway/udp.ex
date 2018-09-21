@@ -11,7 +11,7 @@ defmodule ChessPlus.Gateway.Udp do
   end
 
   def init(:ok) do
-    {port, _} = Integer.parse(Application.get_env(:chess_plus_server, :port))
+    {port, _} = Integer.parse(Application.get_env(:chess_plus_server, :udp_port))
     :gen_udp.open(port, [:binary])
   end
 
