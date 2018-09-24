@@ -16,7 +16,8 @@ defmodule ChessPlus.Gateway.Tcp do
   end
 
   def init(:ok) do
-    ((:gen_tcp.listen(1338, [:binary, reuseaddr: true])
+    {port, _} = Integer.parse(Application.get_env(:chess_plus_server, :tcp_port))
+    ((:gen_tcp.listen(port, [:binary, reuseaddr: true])
     |> Result.warn()
     <|> &%{socket: &1, chunks: %{}})
     <|> &Result.retn/1)
