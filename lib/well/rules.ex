@@ -416,7 +416,7 @@ defmodule ChessPlus.Well.Rules do
     ChessPlus.Logger.log(rules)
     Enum.filter(rules, fn
       {:promote, _} -> true
-      {:add_buff, _} -> true
+      {:add_buff_on_move, _} -> true
       _ -> false
     end)
   end
@@ -434,8 +434,8 @@ defmodule ChessPlus.Well.Rules do
       _, {:move, _} -> false
       {:promote, _}, _ -> true
       _, {:promote, _} -> false
-      {:add_buff, _}, _ -> true
-      {_, :add_buff}, _ -> false
+      {:add_buff_on_move, _}, _ -> true
+      {_, :add_buff_on_move}, _ -> false
       {:defeat, _}, _ -> true
       _, {:defeat, _} -> false
       {:remise, _}, _ -> true

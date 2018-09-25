@@ -36,7 +36,7 @@ defmodule ChessPlus.Flow.Piece.UpdatePieceState do
             end) ++ waves
           end)
           |> Option.to_result("Failed to report promoted piece")
-        {:add_buff, %{buff_id}}, {:ok, waves} ->
+        {:add_buff_on_move, %{buff_id: buff_id}}, {:ok, waves} ->
           waves = Duel.map_duelists(duel, fn duelist ->
             {:tcp, duelist, {{:buffs, :update}, duel.buffs.active_buffs}}
           end) ++ waves

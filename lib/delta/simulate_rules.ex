@@ -19,7 +19,7 @@ defmodule ChessPlus.Delta.SimulateRules do
   def simulate_rule(_, {:move_combo, _}, :none), do: {:error, "No piece to simulate move combo rule"}
   def simulate_rule(_, {:conquer_combo, _}, :none), do: {:error, "No piece to simulate conquer combo rule"}
   def simulate_rule(_, {:promote, _}, :none), do: {:error, "No piece to simulate promote rule"}
-  def simulate_rule(_, {:add_buff, _}, :none), do: {:error, "No piece to simulate add buff rule"}
+  def simulate_rule(_, {:add_buff_on_move, _}, :none), do: {:error, "No piece to simulate add buff rule"}
   def simulate_rule(duel, {:move, %{offset: offset}}, {:some, piece}) do
     (Piece.find_piece_coordinate(duel, piece)
     |> IO.inspect(label: "piece coord")
