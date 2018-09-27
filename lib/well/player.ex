@@ -2,6 +2,8 @@ defmodule ChessPlus.Well.Player do
   use ChessPlus.Well
   alias __MODULE__, as: Player
 
+  @vsn "0"
+
   @type duel_id :: :none | {:some, String.t}
 
   @type player :: %Player{

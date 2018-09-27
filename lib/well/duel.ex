@@ -6,6 +6,8 @@ defmodule ChessPlus.Well.Duel do
   alias ChessPlus.Option
   alias __MODULE__, as: Duel
 
+  @vsn "0"
+
   @type territory :: :classic
     | :debug
 

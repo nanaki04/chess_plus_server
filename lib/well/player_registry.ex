@@ -2,6 +2,8 @@ defmodule ChessPlus.Well.PlayerRegistry do
   use DynamicSupervisor
   alias ChessPlus.Result
 
+  @vsn "0"
+
   def start_link(_) do
     DynamicSupervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
