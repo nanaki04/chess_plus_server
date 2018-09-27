@@ -5,11 +5,11 @@ defmodule ChessPlus.Flow.Buff.RefreshBuffs do
   alias ChessPlus.Result
 
   @impl(ChessPlus.Wave)
-  def flow({{:event, :piece_moved}, _, %{duel: {:some, id}}) do
+  def flow({{:event, :piece_moved}, _}, %{duel: {:some, id}}) do
     Duel.update(id, fn duel ->
       duel
       |> Buff.decrement_turn_durations()
-      |> Buff.remove_expired_buffs()
+      |> Result.bind(&Buff.remove_expired_buffs/1)
     end)
     |> Result.bind(fn duel ->
       Duel.map_duelists(duel, fn duelist ->

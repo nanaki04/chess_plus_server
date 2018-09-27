@@ -1,14 +1,16 @@
 defmodule ChessPlus.Delta.ApplyBuffs do
   alias ChessPlus.Well.Duel
-  alias ChessPlus.Well.Duel.Buff
   alias ChessPlus.Well.Duel.Piece
   alias ChessPlus.Result
+  alias ChessPlus.Option
+  import ChessPlus.Option, only: [<~>: 2]
 
   @type duel :: Duel.duel
   @type buff :: Duel.active_buff
+  @type wave :: ChessPlus.Wave.wave
 
   @spec apply_buff(duel, buff) :: Result.result
-  def apply_buff(duel, %{type: :add_rule, %{rules: rules, piece_id: piece_id}}) do
+  def apply_buff(duel, %{type: {:add_rule, %{rules: rules}}, piece_id: piece_id}) do
     Duel.update_piece_by_id(duel, piece_id, fn
       :none ->
         :none
@@ -19,18 +21,18 @@ defmodule ChessPlus.Delta.ApplyBuffs do
   end
 
   @spec unapply_buff(duel, buff) :: Result.result
-  def unapply_buff(duel, %{type: :add_rule, %{rules: rules, piece_id: piece_id}}) do
+  def unapply_buff(duel, %{type: {:add_rule, %{rules: rules}}, piece_id: piece_id}) do
     Duel.update_piece_by_id(duel, piece_id, fn
       :none ->
         :none
       {:some, piece} ->
-        Enum.reduce(rules, piece, fn rule -> %{piece | rules: List.delete(piece.rules, rule)} end)
+        Enum.reduce(rules, piece, fn rule, piece -> %{piece | rules: List.delete(piece.rules, rule)} end)
         |> Option.retn()
     end)
   end
 
-  @spec get_apply_waves(duel, buff) :: [wave]
-  def get_apply_waves(duel, %{type: :add_rule, %{rules: rules, piece_id: piece_id}}) do
+  @spec get_apply_waves(duel, buff) :: Result.result
+  def get_apply_waves(duel, %{type: {:add_rule, %{rules: _}}, piece_id: piece_id}) do
     maybe_piece = Duel.fetch_piece_by_id(duel, piece_id)
     maybe_coord = Option.bind(maybe_piece, fn piece -> Piece.find_piece_coordinate(duel, piece) end)
 
@@ -45,8 +47,8 @@ defmodule ChessPlus.Delta.ApplyBuffs do
     |> Result.retn()
   end
 
-  @spec get_unapply_waves(duel, buff) :: [wave]
-  def get_unapply_waves(duel, %{type: :add_rule, _} = buff) do
+  @spec get_unapply_waves(duel, buff) :: Result.result
+  def get_unapply_waves(duel, %{type: {:add_rule, _}} = buff) do
     get_apply_waves(duel, buff)
   end
 

@@ -453,6 +453,7 @@ defmodule ChessPlus.Well.Duel do
     @type buff_duration :: Duel.buff_duration
     @type active_buff :: Duel.active_buff
     @type buffs :: Duel.buffs
+    @type duel :: ChessPlus.Well.Duel.duel
 
     @spec find_buff(duel, number) :: Option.option
     def find_buff(%Duel{} = duel, id) do

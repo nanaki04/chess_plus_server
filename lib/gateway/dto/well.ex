@@ -571,16 +571,47 @@ defmodule ChessPlus.Dto.Well do
 
     @type dto :: term
     @type buff :: Duel.active_buff
+    @type buff_type :: Duel.buff_type
+    @type buff_duration :: Duel.buff_duration
 
     @spec export([buff]) :: Result.result
     def export(buffs) do
-      Enum.map(buffs, fn 
+      Enum.map(buffs, fn buff ->
+        {:ok, &%{"ID" => &1, "Type" => &2, "Duration" => &3, "PieceID" => &4}}
+        <~> export_buff_type(buff.buff_type)
+        <~> export_buff_duration(buff.buff_duration)
+        <~> {:ok, buff.piece_id}
+      end)
+      |> Result.unwrap()
     end
+
+    @spec export(buff_type) :: Result.result
+    def export_buff_type({:add_rule, %{rules: rules}}), do: {:ok, %{"Type" => "AddRule", "Rules" => rules}}
+    def export_buff_type(_), do: {:error, "Unknown buff type"}
+
+    @spec export(buff_duration) :: Result.result
+    def export_buff_duration({:turn, duration}), do: {:ok, %{"Type" => "Turn", "Duration" => duration}}
+    def export_buff_duration(_), do: {:error, "Unknown buff duration"}
 
     @spec imprt(dto) :: Result.result
-    def imprt(dto) do
-
+    def imprt(buffs) do
+      Enum.map(buffs, fn %{"ID" => id, "Type" => type, "Duration" => duration, "PieceID" => piece_id} ->
+        {:ok, &%{id: &1, type: &2, duration: &3, piece_id: &4}}
+        <~> {:ok, id}
+        <~> imprt_buff_type(type)
+        <~> imprt_buff_duration(duration)
+        <~> {:ok, piece_id}
+      end)
+      |> Result.unwrap()
     end
+
+    @spec imprt_buff_type(dto) :: Result.result
+    def imprt_buff_type(%{"Type" => "AddRule", "Rules" => rules}), do: {:ok, {:add_rule, %{rules: rules}}}
+    def imprt_buff_type(_), do: {:error, "Unknown buff type"}
+
+    @spec imprt_buff_duration(dto) :: Result.result
+    def imprt_buff_duration(%{"Type" => "Turn", "Duration" => duration}), do: {:ok, {:turn, duration}}
+    def imprt_buff_duration(_), do: {:error, "Unknown buff duration"}
   end
 
   defmodule TileSelections do

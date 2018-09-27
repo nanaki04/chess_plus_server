@@ -2,12 +2,14 @@ defmodule ChessPlus.Flow.Piece.UpdatePieceState do
   use ChessPlus.Wave
   alias ChessPlus.Well.Duel
   alias ChessPlus.Well.Duel.Piece
+  alias ChessPlus.Well.Duel.Buff
   alias ChessPlus.Well.Rules
   alias ChessPlus.Delta.SimulateRules
   alias ChessPlus.Delta.VerifyRules
   alias ChessPlus.Delta.ApplyBuffs
   alias ChessPlus.Option
   alias ChessPlus.Result
+  import ChessPlus.Option, only: [<~>: 2]
 
   @impl(ChessPlus.Wave)
   def flow({{:event, :piece_moved}, piece}, %{duel: {:some, id}}) do
@@ -43,7 +45,7 @@ defmodule ChessPlus.Flow.Piece.UpdatePieceState do
 
           ({:some, &Kernel.++/2}
           <~> {:some, waves}
-          <~> Option.map(Buff.find_buff(buff_id), fn buff -> ApplyBuffs.get_apply_waves(duel, buff) end))
+          <~> Option.map(Buff.find_buff(duel, buff_id), fn buff -> ApplyBuffs.get_apply_waves(duel, buff) end))
           |> Option.or_else(waves)
         _, waves -> waves
       end)

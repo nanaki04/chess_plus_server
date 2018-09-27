@@ -51,7 +51,7 @@ defmodule ChessPlus.Dto.Waves do
     {:ok, {:tile, :deselect}}
   end
 
-  def imprt(%{"Location" => %{"Domain" => "piece", "Invocation" => "add"}, "Piece" => piece, "Coordinate" => coordinate) do
+  def imprt(%{"Location" => %{"Domain" => "piece", "Invocation" => "add"}, "Piece" => piece, "Coordinate" => coordinate}) do
     {:ok, &{{:piece, :add}, %{piece: &1, coordinate: &2}}}
     <~> Well.Piece.imprt(piece)
     <~> Well.Coordinate.imprt(coordinate)
@@ -103,7 +103,7 @@ defmodule ChessPlus.Dto.Waves do
     <~> Well.TileSelections.export(amplitude.board.tiles)
     <~> Well.Pieces.export(amplitude.board.tiles)
     <~> Well.Rules.export(amplitude.rules)
-    <~> Well.Buffs.export(amplitude.buffs)
+    <~> Well.Buffs.export(amplitude.buffs.active_buffs)
   end
 
   def export({{:open_duels, :add} = location, amplitude}) do
@@ -133,6 +133,7 @@ defmodule ChessPlus.Dto.Waves do
 
   def export({{:piece, :add} = location, amplitude}) do
     {:ok, &%{"Location" => &1, "Piece" => &2, "Coordinate" => &3}}
+    <~> export_location(location)
     <~> Well.Piece.export(amplitude.piece)
     <~> Well.Coordinate.export(amplitude.coordinate)
   end
