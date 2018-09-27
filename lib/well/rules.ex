@@ -1,5 +1,7 @@
 defmodule ChessPlus.Well.Rules do
 
+  @vsn "0"
+
   @type piece_type :: ChessPlus.Well.Duel.piece_type
 
   @type color :: :black

@@ -1,6 +1,8 @@
 defmodule ChessPlus.Well.OpenDuelRegistry do
   use ChessPlus.Well
 
+  @vsn "0"
+
   @id "ChessPlus.Well.OpenDuelRegistry"
 
   @type t :: MapSet.t
