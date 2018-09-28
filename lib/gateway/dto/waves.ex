@@ -74,7 +74,7 @@ defmodule ChessPlus.Dto.Waves do
     <~> Well.Piece.imprt(piece)
   end
 
-  def imprt(%{"Location" => %{"Domain" => "buffs", "Invocation" => "update"}, "buffs" => buffs}) do
+  def imprt(%{"Location" => %{"Domain" => "buffs", "Invocation" => "update"}, "Buffs" => buffs}) do
     {:ok, &{{:buffs, :update}, &1}}
     <~> Well.Buffs.imprt(buffs)
   end
