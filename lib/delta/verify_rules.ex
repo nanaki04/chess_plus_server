@@ -278,11 +278,10 @@ defmodule ChessPlus.Delta.VerifyRules do
   defp verify(%{piece: :none}, {:occupied_by, _}), do: {:ignore_operator, false}
   defp verify(%{piece: {:some, {_, %{color: color}}}} = state, {:occupied_by, duelist_type}) do
     (Duel.find_rule_target_coord(state.duel, state.rule, state.piece)
-    ~>> (&Option.from_result/1)
+                                 #~>> (&Option.from_result/1)
     ~>> fn coord -> Duel.fetch_piece(state.duel, coord) end
     <|> fn
       {_, %{color: occupant_color}} ->
-        ChessPlus.Logger.log(occupant_color)
         case duelist_type do
           :self -> {:conditional, color == occupant_color}
           :other -> {:conditional, color != occupant_color}
@@ -316,6 +315,15 @@ defmodule ChessPlus.Delta.VerifyRules do
 
   defp verify(%{duel: duel}, {:remaining_piece_types, piece_types}) do
     {:conditional, Piece.find_piece_types(duel) == piece_types}
+  end
+
+  defp verify(%{duel: duel, piece: piece, rule: rule}, {:other_piece_type, type}) do
+    Duel.find_rule_target(duel, rule, piece)
+    |> Option.map(fn
+      {^type, _} -> {:conditional, true}
+      _ -> {:conditional, false}
+    end)
+    |> Option.or_else({:conditional, false})
   end
 
   # TODO to make dialyzer happy

@@ -62,7 +62,7 @@ defmodule ChessPlus.Well.Duel do
 
   @type buffs :: %{
     active_buffs: [active_buff],
-    buffs: [buff]
+    buffs: %{number => buff}
   }
 
   @type duelist :: %{
@@ -461,6 +461,15 @@ defmodule ChessPlus.Well.Duel do
       |> Option.from_nullable()
     end
 
+    @spec find_active_buff(duel, number) :: Option.option
+    def find_active_buff(%Duel{} = duel, id) do
+      Enum.find(duel.buffs.active_buffs, fn
+        %{id: ^id} -> true
+        _ -> false
+      end)
+      |> Option.from_nullable()
+    end
+
     @spec update_buffs(duel, fun) :: Result.result
     def update_buffs(%Duel{} = duel, update) do
       %{duel | buffs: update.(duel.buffs)}
@@ -475,7 +484,7 @@ defmodule ChessPlus.Well.Duel do
     @spec add_buff(duel, number, number) :: Result.result
     def add_buff(%Duel{} = duel, buff_id, piece_id) do
       find_buff(duel, buff_id)
-      |> Option.map(fn buff -> %{buff | piece: piece_id} end)
+      |> Option.map(fn buff -> Map.put(buff, :piece_id, piece_id) end)
       |> Option.to_result("Buff to add not found")
       |> Result.bind(fn buff -> update_active_buffs(duel, &[buff | &1]) end)
     end
@@ -494,7 +503,7 @@ defmodule ChessPlus.Well.Duel do
     def remove_expired_buffs(%Duel{} = duel) do
       update_active_buffs(duel, fn buffs ->
         Enum.filter(buffs, fn
-          %{duration: {:turn, duration}} -> duration < 0
+          %{duration: {:turn, duration}} -> duration >= 0
           _ -> true
         end)
       end)
@@ -504,7 +513,7 @@ defmodule ChessPlus.Well.Duel do
     def decrement_turn_durations(%Duel{} = duel) do
       update_active_buffs(duel, fn buffs ->
         Enum.map(buffs, fn
-          %{duration: {:turn, duration}} = buff -> %{buff | duration: duration - 1}
+          %{duration: {:turn, duration}} = buff -> %{buff | duration: {:turn, duration - 1}}
           buff -> buff
         end)
       end)
@@ -677,17 +686,23 @@ defmodule ChessPlus.Well.Duel do
   @spec find_rule_target_coord(duel, Rules.rule, Option.option) :: Option.option
   def find_rule_target_coord(%Duel{} = duel, {_, %{offset: offset}}, {:some, piece}) do
     Duel.Piece.find_piece_coordinate(duel, piece)
-    |> Option.map(fn coord -> Duel.Coordinate.apply_offset(coord, offset) end)
+    |> Option.bind(fn coord ->
+      Duel.Coordinate.apply_offset(coord, offset)
+      |> Option.from_result()
+    end)
   end
   def find_rule_target_coord(%Duel{} = duel, {_, %{target_offset: offset}}, {:some, piece}) do
     Duel.Piece.find_piece_coordinate(duel, piece)
-    |> Option.map(fn coord -> Duel.Coordinate.apply_offset(coord, offset) end)
+    |> Option.bind(fn coord ->
+      Duel.Coordinate.apply_offset(coord, offset)
+      |> Option.from_result()
+    end)
   end
   def find_rule_target_coord(_, _, _), do: :none
 
   def find_rule_target(%Duel{} = duel, rule, piece) do
     find_rule_target_coord(duel, rule, piece)
-    |> Option.map(fn coord -> fetch_piece(duel, coord) end)
+    |> Option.bind(fn coord -> fetch_piece(duel, coord) end)
   end
 
   def map_duelists(%{duel: {:some, id}}, update) do

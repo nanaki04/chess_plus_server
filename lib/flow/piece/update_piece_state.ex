@@ -45,12 +45,15 @@ defmodule ChessPlus.Flow.Piece.UpdatePieceState do
 
           ({:some, &Kernel.++/2}
           <~> {:some, waves}
-          <~> Option.map(Buff.find_buff(duel, buff_id), fn buff -> ApplyBuffs.get_apply_waves(duel, buff) end))
+          <~> Option.bind(Buff.find_active_buff(duel, buff_id), fn buff ->
+            ApplyBuffs.get_apply_waves(duel, buff)
+            |> Option.from_result()
+          end))
           |> Option.or_else(waves)
+          |> Result.retn()
         _, waves -> waves
       end)
     end)
-    |> IO.inspect(label: "update piece state result")
   end
 
 end

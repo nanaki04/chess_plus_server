@@ -100,7 +100,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
 
     # En Passant
     ++ [{:conquer_combo, %{
-      target_offset: {1, 0},
+      target_offset: {0, 1},
       my_movement: {1, 1},
       condition: {
         :all_of, [
@@ -112,19 +112,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
     }},
 
     {:conquer_combo, %{
-      target_offset: {-1, 0},
-      my_movement: {-1, 1},
-      condition: {
-        :all_of, [
-          {{:equals, 1}, :target_move_count},
-          {:is, {:other_piece_type, :pawn}},
-          {:is, {:other_owner, :other}}
-        ]
-      }
-    }},
-
-    {:conquer_combo, %{
-      target_offset: {1, 0},
+      target_offset: {0, -1},
       my_movement: {1, -1},
       condition: {
         :all_of, [
@@ -136,7 +124,19 @@ defmodule ChessPlus.Rock.Duel.Classic do
     }},
 
     {:conquer_combo, %{
-      target_offset: {-1, 0},
+      target_offset: {0, 1},
+      my_movement: {-1, 1},
+      condition: {
+        :all_of, [
+          {{:equals, 1}, :target_move_count},
+          {:is, {:other_piece_type, :pawn}},
+          {:is, {:other_owner, :other}}
+        ]
+      }
+    }},
+
+    {:conquer_combo, %{
+      target_offset: {0, -1},
       my_movement: {-1, -1},
       condition: {
         :all_of, [
@@ -155,7 +155,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
         ]
       },
       buff_id: @en_passant_buff_black_id,
-      target_offset: {1, 0}
+      target_offset: {0, 1}
     }},
 
     {:add_buff_on_move, %{
@@ -166,7 +166,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
         ]
       },
       buff_id: @en_passant_buff_black_id,
-      target_offset: {-1, 0}
+      target_offset: {0, -1}
     }},
 
     {:add_buff_on_move, %{
@@ -177,7 +177,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
         ]
       },
       buff_id: @en_passant_buff_white_id,
-      target_offset: {1, 0}
+      target_offset: {0, 1}
     }},
 
     {:add_buff_on_move, %{
@@ -188,7 +188,7 @@ defmodule ChessPlus.Rock.Duel.Classic do
         ]
       },
       buff_id: @en_passant_buff_white_id,
-      target_offset: {-1, 0}
+      target_offset: {0, -1}
     }}]
 
     # promotions
@@ -271,6 +271,9 @@ defmodule ChessPlus.Rock.Duel.Classic do
         }
       }
     ]
+    |> Enum.with_index()
+    |> Enum.map(fn {buff, index} -> {index, buff} end)
+    |> Enum.into(%{})
   end
 
   @spec build_piece_templates(Rules.rules) :: term

@@ -415,7 +415,6 @@ defmodule ChessPlus.Well.Rules do
 
   @spec filter_on_piece_moved_rules([rule]) :: [rule]
   def filter_on_piece_moved_rules(rules) do
-    ChessPlus.Logger.log(rules)
     Enum.filter(rules, fn
       {:promote, _} -> true
       {:add_buff_on_move, _} -> true

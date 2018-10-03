@@ -22,7 +22,6 @@ defmodule ChessPlus.Delta.SimulateRules do
   def simulate_rule(_, {:add_buff_on_move, _}, :none), do: {:error, "No piece to simulate add buff rule"}
   def simulate_rule(duel, {:move, %{offset: offset}}, {:some, piece}) do
     (Piece.find_piece_coordinate(duel, piece)
-    |> IO.inspect(label: "piece coord")
     ~>> fn coord -> (Coordinate.apply_offset(coord, offset) |> Option.from_result()) <|> &{coord, &1} end
     <|> fn {from, to} ->
       if Duel.has_tile?(duel, to) do
@@ -95,11 +94,11 @@ defmodule ChessPlus.Delta.SimulateRules do
     maybe_own_coord = Piece.find_piece_coordinate(duel, piece)
     maybe_target_coord = Coordinate.apply_offset(maybe_own_coord, target_offset)
     maybe_target = Option.bind(maybe_target_coord, fn coord -> Duel.fetch_piece(duel, coord) end)
+    maybe_target_id = Piece.id(maybe_target)
 
-    ({:some, fn target -> Buff.add_buff(duel, buff_id, target.id) end}
-    <~> maybe_target)
+    ({:some, fn id -> Buff.add_buff(duel, buff_id, id) end}
+    <~> maybe_target_id)
     |> Option.or_else(duel)
-    |> Result.retn()
   end
   def simulate_rule(_, _, _), do: {:error, "No simulation available for rule"}
 end

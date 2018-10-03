@@ -11,7 +11,7 @@ defmodule ChessPlus.Flow.Buff.RefreshBuffs do
       |> Buff.decrement_turn_durations()
       |> Result.bind(&Buff.remove_expired_buffs/1)
     end)
-    |> Result.bind(fn duel ->
+    |> Result.map(fn duel ->
       Duel.map_duelists(duel, fn duelist ->
         {:tcp, duelist, {{:buffs, :update}, duel.buffs.active_buffs}}
       end)

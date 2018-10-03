@@ -578,8 +578,9 @@ defmodule ChessPlus.Dto.Well do
     def export(buffs) do
       Enum.map(buffs, fn buff ->
         {:ok, &%{"ID" => &1, "Type" => &2, "Duration" => &3, "PieceID" => &4}}
-        <~> export_buff_type(buff.buff_type)
-        <~> export_buff_duration(buff.buff_duration)
+        <~> {:ok, buff.id}
+        <~> export_buff_type(buff.type)
+        <~> export_buff_duration(buff.duration)
         <~> {:ok, buff.piece_id}
       end)
       |> Result.unwrap()
