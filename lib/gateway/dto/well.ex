@@ -577,7 +577,7 @@ defmodule ChessPlus.Dto.Well do
     @spec export([buff]) :: Result.result
     def export(buffs) do
       Enum.map(buffs, fn buff ->
-        {:ok, &%{"ID" => &1, "Type" => &2, "Duration" => &3, "PieceID" => &4}}
+        {:ok, &%{"BuffID" => &1, "BuffType" => &2, "BuffDuration" => &3, "PieceID" => &4}}
         <~> {:ok, buff.id}
         <~> export_buff_type(buff.type)
         <~> export_buff_duration(buff.duration)
@@ -596,7 +596,7 @@ defmodule ChessPlus.Dto.Well do
 
     @spec imprt(dto) :: Result.result
     def imprt(buffs) do
-      Enum.map(buffs, fn %{"ID" => id, "Type" => type, "Duration" => duration, "PieceID" => piece_id} ->
+      Enum.map(buffs, fn %{"BuffID" => id, "BuffType" => type, "BuffDuration" => duration, "PieceID" => piece_id} ->
         {:ok, &%{id: &1, type: &2, duration: &3, piece_id: &4}}
         <~> {:ok, id}
         <~> imprt_buff_type(type)

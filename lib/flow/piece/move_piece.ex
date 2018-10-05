@@ -35,6 +35,33 @@ defmodule ChessPlus.Flow.MovePiece do
 
   defp apply_move_rule(
     duel,
+    {:conquer_combo, %{target_offset: target_offset}} = rule,
+    %{piece: piece, from: from} = ampl)
+  do
+    maybe_other_coord = Coordinate.apply_offset(from, target_offset) |> Option.from_result()
+
+    ({:some, fn other_coord ->
+      Duel.increment_piece_move_count(duel, from)
+      |> Result.bind(fn duel -> SimulateRules.simulate_rule(duel, rule, {:some, piece}) end)
+      |> Result.map(fn duel ->
+        waves = Duel.map_duelists(duel, fn duelist ->
+          [
+            {:tcp, duelist, {{:piece, :conquer}, ampl}},
+            {:tcp, duelist, {{:piece, :remove}, other_coord}}
+          ]
+        end)
+        |> Enum.flat_map(&(&1))
+
+        {duel, waves}
+      end)
+    end}
+    <~> maybe_other_coord)
+    |> Option.to_result()
+    |> Result.flatten()
+  end
+
+  defp apply_move_rule(
+    duel,
     {:move_combo, %{other: other, other_movement: other_movement}} = rule,
     %{piece: piece, from: from} = ampl)
   do

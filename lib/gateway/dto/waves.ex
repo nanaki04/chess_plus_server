@@ -65,7 +65,7 @@ defmodule ChessPlus.Dto.Waves do
   end
 
   def imprt(%{"Location" => %{"Domain" => "piece", "Invocation" => "remove"}, "Coordinate" => coordinate}) do
-    {:ok, &{{:piece, :remove}, %{coordinate: &1}}}
+    {:ok, &{{:piece, :remove}, &1}}
     <~> Well.Coordinate.imprt(coordinate)
   end
 
@@ -157,7 +157,7 @@ defmodule ChessPlus.Dto.Waves do
   def export({{:piece, :remove} = location, amplitude}) do
     {:ok, &%{"Location" => &1, "Coordinate" => &2}}
     <~> export_location(location)
-    <~> Well.Coordinate.export(amplitude.coordinate)
+    <~> Well.Coordinate.export(amplitude)
   end
 
   def export({{:piece, :promote} = location, amplitude}) do

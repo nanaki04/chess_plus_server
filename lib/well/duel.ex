@@ -470,6 +470,23 @@ defmodule ChessPlus.Well.Duel do
       |> Option.from_nullable()
     end
 
+    @spec find_active_buffs_by_piece_id(duel, number) :: [active_buff]
+    def find_active_buffs_by_piece_id(%Duel{} = duel, piece_id) do
+      Enum.filter(duel.buffs.active_buffs, fn
+        %{piece_id: ^piece_id} -> true
+        _ -> false
+      end)
+    end
+
+    @spec find_rules_added_by_buffs(duel, number) :: [number]
+    def find_rules_added_by_buffs(%Duel{} = duel, piece_id) do
+      Enum.filter(duel.buffs.active_buffs, fn
+        %{piece_id: ^piece_id, type: {:add_rule, %{rules: _}}} -> true
+        _ -> false
+      end)
+      |> Enum.flat_map(fn %{type: {_, %{rules: rules}}} -> rules end)
+    end
+
     @spec update_buffs(duel, fun) :: Result.result
     def update_buffs(%Duel{} = duel, update) do
       %{duel | buffs: update.(duel.buffs)}
@@ -645,7 +662,8 @@ defmodule ChessPlus.Well.Duel do
     |> fetch_rules()
   end
 
-  def fetch_piece_rules(%Duel{} = duel, {_, %{rules: rules}}) do
+  def fetch_piece_rules(%Duel{} = duel, {_, %{id: id, rules: rules}}) do
+    rules = rules ++ ChessPlus.Well.Duel.Buff.find_rules_added_by_buffs(duel, id)
     fetch_rules(duel)
     |> Rules.find_rules(rules)
   end
@@ -676,6 +694,7 @@ defmodule ChessPlus.Well.Duel do
         {:move, %{offset: rule_offset}} -> offset == {:ok, rule_offset}
         {:conquer, %{offset: rule_offset}} -> offset == {:ok, rule_offset}
         {:move_combo, %{my_movement: rule_offset}} -> offset == {:ok, rule_offset}
+        {:conquer_combo, %{my_movement: rule_offset}} -> offset == {:ok, rule_offset}
         _ -> false
       end)
     else
