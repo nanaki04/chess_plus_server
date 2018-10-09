@@ -20,7 +20,11 @@ defmodule ChessPlus.Bridge do
     all: {:self, Flow.FindOpenDuels, :flow, []}
 
   footprint :duelist,
-    join: {:self, Flow.Duel.Join, :flow, []}
+    join: {:self, Flow.Duel.Join, :flow, []},
+    forfeit: {:self, Flow.Duel.Forfeit, :flow, []},
+    propose_remise: {:self, Flow.Duel.ProposeRemise, :flow, []},
+    remise: {:self, Flow.Duel.AcceptRemise, :flow, []},
+    refuse_remise: {:self, Flow.Duel.RefuseRemise, :flow, []}
 
   footprint :tile,
     select: {:self, Flow.SelectTile, :flow, []},

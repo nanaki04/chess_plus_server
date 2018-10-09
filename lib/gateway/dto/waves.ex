@@ -79,6 +79,11 @@ defmodule ChessPlus.Dto.Waves do
     <~> Well.Buffs.imprt(buffs)
   end
 
+  def imprt(%{"Location" => %{"Domain" => "duelist", "Invocation" => "forfeit"}}), do: {:ok, {:duelist, :forfeit}}
+  def imprt(%{"Location" => %{"Domain" => "duelist", "Invocation" => "propose_remise"}}), do: {:ok, {:duelist, :propose_remise}}
+  def imprt(%{"Location" => %{"Domain" => "duelist", "Invocation" => "remise"}}), do: {:ok, {:duelist, :remise}}
+  def imprt(%{"Location" => %{"Domain" => "duelist", "Invocation" => "refuse_remise"}}), do: {:ok, {:duelist, :refuse_remise}}
+
   def imprt(%{"Location" => %{"Domain" => d, "Invocation" => i}}), do: {:error, "Failed to import Wave: " <> d <> " : " <> i}
   def imprt(w), do: {:error, "Failed to import Wave: " <> Poison.encode!(w)}
 
@@ -182,6 +187,16 @@ defmodule ChessPlus.Dto.Waves do
     {:ok, &%{"Location" => &1, "DuelState" => &2}}
     <~> export_location(location)
     <~> Well.DuelState.export(amplitude)
+  end
+
+  def export({:duelist, :propose_remise} = location) do
+    {:ok, &%{"Location" => &1}}
+    <~> export_location(location)
+  end
+
+  def export({:duelist, :refuse_remise} = location) do
+    {:ok, &%{"Location" => &1}}
+    <~> export_location(location)
   end
 
   def export(_), do: {:error, "Failed to export Wave"}
