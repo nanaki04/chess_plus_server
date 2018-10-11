@@ -118,6 +118,8 @@ defmodule ChessPlus.Well.Duel do
     | {:ended, :remise}
     | {:ended, {:win, :black}}
     | {:ended, {:win, :white}}
+    | {:ended, {:request_rematch, :black}}
+    | {:ended, {:request_rematch, :white}}
 
   @type duel :: %Duel{
     id: String.t,
@@ -755,6 +757,10 @@ defmodule ChessPlus.Well.Duel do
       nil -> :none
       duelist -> {:some, duelist}
     end
+  end
+
+  def remove_player(duel, %{name: name}) do
+    %{duel | duelists: Enum.filter(duel.duelists, fn duelist -> duelist.name != name end)}
   end
 
   def is_full?(duel_id) when is_binary(duel_id) do

@@ -5,7 +5,7 @@ defmodule ChessPlus.Flow.Login do
   # MEMO: udp arrives first
   @impl(ChessPlus.Wave)
   def flow({{:player, :join}, %{name: name}}, {:udp, %{ip: ip, port: port}}) do
-    name = if Player.active?(name), do: add_name_counter(name), else: name
+    name = find_name(name)
 
     player = Player.update!(name, fn p -> %Player{
       p |
@@ -36,6 +36,10 @@ defmodule ChessPlus.Flow.Login do
 
   def flow({{:player, :join}, _}, %Player{}) do
     {:error, "Already logged in"}
+  end
+
+  defp find_name(name) do
+    if Player.active?(name), do: find_name(add_name_counter(name)), else: name
   end
 
   @doc """
