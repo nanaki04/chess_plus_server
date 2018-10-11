@@ -14,20 +14,19 @@ defmodule ChessPlus.Flow.Duel.Forfeit do
       |> Option.to_result()
     end)
     |> Result.map(fn duel ->
-      :ok = Duel.stop_gracefully(duel_id, true)
 
       commands = Duel.map_duelists(duel, fn p ->
         [
-          {:tcp, p, {{:duel_state, :update}, duel.duel_state}},
-          {:event, p, {{:event, :duel_left}, duel.id}}
+          {:tcp, p, {{:duel_state, :update}, duel.duel_state}}
         ]
       end)
       |> Enum.flat_map(&(&1))
 
-      [
-        {:event, sender, {{:event, :duel_deleted}, duel}} |
-        commands
-      ]
+      commands
+      #      [
+      #        {:event, sender, {{:event, :duel_left}, duel.id}} |
+      #        commands
+      #      ]
     end)
   end
 

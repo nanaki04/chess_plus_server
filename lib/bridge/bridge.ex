@@ -14,7 +14,8 @@ defmodule ChessPlus.Bridge do
     remove: {:self, Flow.Logout, :flow, []}
 
   footprint :duel,
-    new: {:self, Flow.Duel.New, :flow, []}
+    new: {:self, Flow.Duel.New, :flow, []},
+    rematch: {:self, Flow.Duel.Rematch, :flow, []}
 
   footprint :open_duels,
     all: {:self, Flow.FindOpenDuels, :flow, []}
@@ -22,9 +23,11 @@ defmodule ChessPlus.Bridge do
   footprint :duelist,
     join: {:self, Flow.Duel.Join, :flow, []},
     forfeit: {:self, Flow.Duel.Forfeit, :flow, []},
+    leave: {:self, Flow.Duel.LeaveDuel, :flow, []},
     propose_remise: {:self, Flow.Duel.ProposeRemise, :flow, []},
     remise: {:self, Flow.Duel.AcceptRemise, :flow, []},
-    refuse_remise: {:self, Flow.Duel.RefuseRemise, :flow, []}
+    refuse_remise: {:self, Flow.Duel.RefuseRemise, :flow, []},
+    request_rematch: {:self, Flow.Duel.RequestRematch, :flow, []}
 
   footprint :tile,
     select: {:self, Flow.SelectTile, :flow, []},

@@ -26,6 +26,9 @@ defmodule ChessPlus.ObserverRegistry do
       ChessPlus.Flow.Piece.UpdatePieceState,
       ChessPlus.Flow.Buff.RefreshBuffs,
       ChessPlus.Flow.Duel.UpdateDuelState,
+    ],
+    rematch_requested: [
+      ChessPlus.Flow.Duel.TrackRequestRematchTimeout
     ]
   ]
 end

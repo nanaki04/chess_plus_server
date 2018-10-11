@@ -4,10 +4,12 @@ defmodule ChessPlus.Flow.Player.LeaveDuel do
 
   @impl(ChessPlus.Wave)
   def flow({{:event, :duel_left}, _}, player) do
-    Player.update!(player.id, fn p -> %Player{
-      p |
-      duel: :none
-    } end)
+    if Player.active?(player.id) do
+      Player.update!(player.id, fn p -> %Player{
+        p |
+        duel: :none
+      } end)
+    end
 
     {:ok, []}
   end

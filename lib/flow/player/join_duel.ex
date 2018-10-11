@@ -4,7 +4,7 @@ defmodule ChessPlus.Flow.Player.JoinDuel do
 
   @impl(ChessPlus.Wave)
   def flow({{:event, :duel_joined}, id}, player) do
-    Player.update!(player.id, fn p -> %Player{
+    Player.update!(player.name, fn p -> %Player{
       p |
       duel: {:some, id}
     } end)
