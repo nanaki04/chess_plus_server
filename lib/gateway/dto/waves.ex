@@ -42,6 +42,10 @@ defmodule ChessPlus.Dto.Waves do
     <~> {:ok, duelist}
   end
 
+  def imprt(%{"Location" => %{"Domain" => "duelist", "Invocation" => "remove"}}) do
+    {:ok, {:duelist, :remove}}
+  end
+
   def imprt(%{"Location" => %{"Domain" => "tile", "Invocation" => "select"}, "Coordinate" => coordinate}) do
     {:ok, &{{:tile, :select}, %{coordinate: &1}}}
     <~> Well.Coordinate.imprt(coordinate)
@@ -51,6 +55,12 @@ defmodule ChessPlus.Dto.Waves do
     {:ok, {:tile, :deselect}}
   end
 
+  def imprt(%{"Location" => %{"Domain" => "piece", "Invocation" => "add"}, "Piece" => piece, "Coordinate" => coordinate}) do
+    {:ok, &{{:piece, :add}, %{piece: &1, coordinate: &2}}}
+    <~> Well.Piece.imprt(piece)
+    <~> Well.Coordinate.imprt(coordinate)
+  end
+
   def imprt(%{"Location" => %{"Domain" => "piece", "Invocation" => "move"}, "Piece" => piece, "From" => from, "To" => to}) do
     {:ok, &{{:piece, :move}, %{piece: &1, from: &2, to: &3}}}
     <~> Well.Piece.imprt(piece)
@@ -58,10 +68,27 @@ defmodule ChessPlus.Dto.Waves do
     <~> Well.Coordinate.imprt(to)
   end
 
-  def imprt(%{"Location" => %{"Domain" => "Piece", "Invocation" => "Promote"}, "Piece" => piece}) do
+  def imprt(%{"Location" => %{"Domain" => "piece", "Invocation" => "remove"}, "Coordinate" => coordinate}) do
+    {:ok, &{{:piece, :remove}, &1}}
+    <~> Well.Coordinate.imprt(coordinate)
+  end
+
+  def imprt(%{"Location" => %{"Domain" => "piece", "Invocation" => "promote"}, "Piece" => piece}) do
     {:ok, &{{:piece, :promote}, &1}}
     <~> Well.Piece.imprt(piece)
   end
+
+  def imprt(%{"Location" => %{"Domain" => "buffs", "Invocation" => "update"}, "Buffs" => buffs}) do
+    {:ok, &{{:buffs, :update}, &1}}
+    <~> Well.Buffs.imprt(buffs)
+  end
+
+  def imprt(%{"Location" => %{"Domain" => "duelist", "Invocation" => "forfeit"}}), do: {:ok, {:duelist, :forfeit}}
+  def imprt(%{"Location" => %{"Domain" => "duelist", "Invocation" => "propose_remise"}}), do: {:ok, {:duelist, :propose_remise}}
+  def imprt(%{"Location" => %{"Domain" => "duelist", "Invocation" => "remise"}}), do: {:ok, {:duelist, :remise}}
+  def imprt(%{"Location" => %{"Domain" => "duelist", "Invocation" => "refuse_remise"}}), do: {:ok, {:duelist, :refuse_remise}}
+  def imprt(%{"Location" => %{"Domain" => "duelist", "Invocation" => "request_rematch"}}), do: {:ok, {:duelist, :request_rematch}}
+  def imprt(%{"Location" => %{"Domain" => "duel", "Invocation" => "rematch"}}), do: {:ok, {:duel, :rematch}}
 
   def imprt(%{"Location" => %{"Domain" => d, "Invocation" => i}}), do: {:error, "Failed to import Wave: " <> d <> " : " <> i}
   def imprt(w), do: {:error, "Failed to import Wave: " <> Poison.encode!(w)}
@@ -80,13 +107,14 @@ defmodule ChessPlus.Dto.Waves do
   end
 
   def export({{:duel, :add} = location, amplitude}) do
-    {:ok, &%{"Location" => &1, "Duel" => &2, "Tiles" => &3, "TileSelections" => &4, "Pieces" => &5, "Rules" => &6}}
+    {:ok, &%{"Location" => &1, "Duel" => &2, "Tiles" => &3, "TileSelections" => &4, "Pieces" => &5, "Rules" => &6, "Buffs" => &7}}
     <~> export_location(location)
     <~> Well.Duel.export(amplitude)
     <~> Well.Tiles.export(amplitude.board.tiles)
     <~> Well.TileSelections.export(amplitude.board.tiles)
     <~> Well.Pieces.export(amplitude.board.tiles)
     <~> Well.Rules.export(amplitude.rules)
+    <~> Well.Buffs.export(amplitude.buffs.active_buffs)
   end
 
   def export({{:open_duels, :add} = location, amplitude}) do
@@ -114,6 +142,13 @@ defmodule ChessPlus.Dto.Waves do
     <~> Well.Color.export(amplitude.player)
   end
 
+  def export({{:piece, :add} = location, amplitude}) do
+    {:ok, &%{"Location" => &1, "Piece" => &2, "Coordinate" => &3}}
+    <~> export_location(location)
+    <~> Well.Piece.export(amplitude.piece)
+    <~> Well.Coordinate.export(amplitude.coordinate)
+  end
+
   def export({{:piece, :move} = location, amplitude}) do
     {:ok, &%{"Location" => &1, "Piece" => &2, "From" => &3, "To" => &4}}
     <~> export_location(location)
@@ -130,10 +165,22 @@ defmodule ChessPlus.Dto.Waves do
     <~> Well.Coordinate.export(amplitude.to)
   end
 
+  def export({{:piece, :remove} = location, amplitude}) do
+    {:ok, &%{"Location" => &1, "Coordinate" => &2}}
+    <~> export_location(location)
+    <~> Well.Coordinate.export(amplitude)
+  end
+
   def export({{:piece, :promote} = location, amplitude}) do
     {:ok, &%{"Location" => &1, "Piece" => &2}}
     <~> export_location(location)
     <~> Well.Piece.export(amplitude)
+  end
+
+  def export({{:buffs, :update} = location, amplitude}) do
+    {:ok, &%{"Location" => &1, "Buffs" => &2}}
+    <~> export_location(location)
+    <~> Well.Buffs.export(amplitude)
   end
 
   def export({{:global, :error} = location, amplitude}) do
@@ -146,6 +193,38 @@ defmodule ChessPlus.Dto.Waves do
     {:ok, &%{"Location" => &1, "DuelState" => &2}}
     <~> export_location(location)
     <~> Well.DuelState.export(amplitude)
+  end
+
+  def export({{:duelist, :rematch} = location, amplitude}) do
+    {:ok, &%{"Location" => &1, "Duel" => &2, "Tiles" => &3, "TileSelections" => &4, "Pieces" => &5, "Rules" => &6, "Buffs" => &7}}
+    <~> export_location(location)
+    <~> Well.Duel.export(amplitude)
+    <~> Well.Tiles.export(amplitude.board.tiles)
+    <~> Well.TileSelections.export(amplitude.board.tiles)
+    <~> Well.Pieces.export(amplitude.board.tiles)
+    <~> Well.Rules.export(amplitude.rules)
+    <~> Well.Buffs.export(amplitude.buffs.active_buffs)
+  end
+
+  def export({{:duelist, :remove} = location, amplitude}) do
+    {:ok, &%{"Location" => &1, "Duelist" => &2}}
+    <~> export_location(location)
+    <~> Well.Duelist.export(amplitude)
+  end 
+
+  def export({:duelist, :propose_remise} = location) do
+    {:ok, &%{"Location" => &1}}
+    <~> export_location(location)
+  end
+
+  def export({:duelist, :refuse_remise} = location) do
+    {:ok, &%{"Location" => &1}}
+    <~> export_location(location)
+  end
+
+  def export({:duelist, :request_rematch} = location) do
+    {:ok, &%{"Location" => &1}}
+    <~> export_location(location)
   end
 
   def export(_), do: {:error, "Failed to export Wave"}

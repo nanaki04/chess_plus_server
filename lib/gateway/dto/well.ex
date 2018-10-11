@@ -159,6 +159,7 @@ defmodule ChessPlus.Dto.Well do
     @spec export(WellRules.condition) :: Result.result
     def export(:always), do: {:ok, %{"Type" => "Always"}}
     def export(:move_count), do: {:ok, %{"Type" => "MoveCount"}}
+    def export(:target_move_count), do: {:ok, %{"Type" => "TargetMoveCount"}}
     def export(:exposes_king), do: {:ok, %{"Type" => "ExposesKing"}}
     def export(:path_blocked), do: {:ok, %{"Type" => "PathBlocked"}}
     def export({:occupied_by, duelist_type}) do
@@ -189,6 +190,7 @@ defmodule ChessPlus.Dto.Well do
     @spec imprt(dto) :: Result.result
     def imprt(%{"Type" => "Always"}), do: {:ok, :always}
     def imprt(%{"Type" => "MoveCount"}), do: {:ok, :move_count}
+    def imprt(%{"Type" => "TargetMoveCount"}), do: {:ok, :target_move_count}
     def imprt(%{"Type" => "ExposesKing"}), do: {:ok, :exposes_king}
     def imprt(%{"Type" => "PathBlocked"}), do: {:ok, :path_blocked}
     def imprt(%{"Type" => "OccupiedBy", "OccupiedBy" => occupied_by}) do
@@ -357,6 +359,32 @@ defmodule ChessPlus.Dto.Well do
       <~> {:ok, [my_movement_r, my_movement_c]}
       <~> {:ok, [other_movement_r, other_movement_c]}
     end
+    def export({
+      :conquer_combo,
+      %{
+        condition: condition,
+        target_offset: {target_r, target_c},
+        my_movement: {my_movement_r, my_movement_c}
+      }
+    }) do
+      {:ok, &%{"Type" => "ConquerCombo", "Condition" => &1, "TargetOffset" => &2, "MyMovement" => &3}}
+      <~> Conditions.export(condition)
+      <~> {:ok, [target_r, target_c]}
+      <~> {:ok, [my_movement_r, my_movement_c]}
+    end
+    def export({
+      :add_buff_on_move,
+      %{
+        condition: condition,
+        target_offset: {target_r, target_c},
+        buff_id: buff_id
+      }
+    }) do
+      {:ok, &%{"Type" => "AddBuffOnMove", "Condition" => &1, "TargetOffset" => &2, "BuffId" => &3}}
+      <~> Conditions.export(condition)
+      <~> {:ok, [target_r, target_c]}
+      <~> {:ok, buff_id}
+    end
     def export({:promote, %{condition: condition, ranks: ranks}}) do
       Conditions.export(condition)
       <|> &%{"Type" => "Promote", "Condition" => &1, "Ranks" => ranks}
@@ -391,6 +419,28 @@ defmodule ChessPlus.Dto.Well do
       <~> {:ok, {other_r, other_c}}
       <~> {:ok, {my_movement_r, my_movement_c}}
       <~> {:ok, {other_movement_r, other_movement_c}}
+    end
+    def imprt(%{
+      "Type" => "ConquerCombo",
+      "Condition" => condition,
+      "TargetOffset" => [target_r, target_c],
+      "MyMovement" => [my_movement_r, my_movement_c]
+    }) do
+      {:ok, &{:conquer_combo, %{condition: &1, target_offset: &2, my_movement: &3}}}
+      <~> Conditions.imprt(condition)
+      <~> {:ok, {target_r, target_c}}
+      <~> {:ok, {my_movement_r, my_movement_c}}
+    end
+    def imprt(%{
+      "Type" => "AddBuffOnMove",
+      "Condition" => condition,
+      "TargetOffset" => [target_r, target_c],
+      "BuffId" => buff_id
+    }) do
+      {:ok, &{:add_buff_on_move, %{condition: &1, target_offset: &2, buff_id: &3}}}
+      <~> Conditions.imprt(condition)
+      <~> {:ok, {target_r, target_c}}
+      <~> buff_id
     end
     def imprt(%{"Type" => "Promote", "Condition" => condition, "Ranks" => ranks}) do
       Conditions.imprt(condition)
@@ -514,6 +564,55 @@ defmodule ChessPlus.Dto.Well do
       <~> {:ok, move_count}
     end
     def imprt(_), do: {:error, "Failed to import Piece"}
+  end
+
+  defmodule Buffs do
+    alias ChessPlus.Well.Duel
+
+    @type dto :: term
+    @type buff :: Duel.active_buff
+    @type buff_type :: Duel.buff_type
+    @type buff_duration :: Duel.buff_duration
+
+    @spec export([buff]) :: Result.result
+    def export(buffs) do
+      Enum.map(buffs, fn buff ->
+        {:ok, &%{"BuffID" => &1, "BuffType" => &2, "BuffDuration" => &3, "PieceID" => &4}}
+        <~> {:ok, buff.id}
+        <~> export_buff_type(buff.type)
+        <~> export_buff_duration(buff.duration)
+        <~> {:ok, buff.piece_id}
+      end)
+      |> Result.unwrap()
+    end
+
+    @spec export(buff_type) :: Result.result
+    def export_buff_type({:add_rule, %{rules: rules}}), do: {:ok, %{"Type" => "AddRule", "Rules" => rules}}
+    def export_buff_type(_), do: {:error, "Unknown buff type"}
+
+    @spec export(buff_duration) :: Result.result
+    def export_buff_duration({:turn, duration}), do: {:ok, %{"Type" => "Turn", "Duration" => duration}}
+    def export_buff_duration(_), do: {:error, "Unknown buff duration"}
+
+    @spec imprt(dto) :: Result.result
+    def imprt(buffs) do
+      Enum.map(buffs, fn %{"BuffID" => id, "BuffType" => type, "BuffDuration" => duration, "PieceID" => piece_id} ->
+        {:ok, &%{id: &1, type: &2, duration: &3, piece_id: &4}}
+        <~> {:ok, id}
+        <~> imprt_buff_type(type)
+        <~> imprt_buff_duration(duration)
+        <~> {:ok, piece_id}
+      end)
+      |> Result.unwrap()
+    end
+
+    @spec imprt_buff_type(dto) :: Result.result
+    def imprt_buff_type(%{"Type" => "AddRule", "Rules" => rules}), do: {:ok, {:add_rule, %{rules: rules}}}
+    def imprt_buff_type(_), do: {:error, "Unknown buff type"}
+
+    @spec imprt_buff_duration(dto) :: Result.result
+    def imprt_buff_duration(%{"Type" => "Turn", "Duration" => duration}), do: {:ok, {:turn, duration}}
+    def imprt_buff_duration(_), do: {:error, "Unknown buff duration"}
   end
 
   defmodule TileSelections do
@@ -702,6 +801,12 @@ defmodule ChessPlus.Dto.Well do
     def export({:ended, :remise}), do: {:ok, %{"Type" => "Ended", "Ended" => %{"Type" => "Remise"}}}
     def export({:ended, {:win, :black}}), do: {:ok, %{"Type" => "Ended", "Ended" => %{"Type" => "Win", "Value" => "Black"}}}
     def export({:ended, {:win, :white}}), do: {:ok, %{"Type" => "Ended", "Ended" => %{"Type" => "Win", "Value" => "White"}}}
+    def export({:ended, {:request_rematch, :black}}) do
+      {:ok, %{"Type" => "Ended", "Ended" => %{"Type" => "RequestRematch", "Value" => "Black"}}}
+    end
+    def export({:ended, {:request_rematch, :white}}) do
+      {:ok, %{"Type" => "Ended", "Ended" => %{"Type" => "RequestRematch", "Value" => "White"}}}
+    end
     def export(_), do: {:error, "Failed to export duel_state"}
 
     @spec imprt(dto) :: Result.result
@@ -712,6 +817,12 @@ defmodule ChessPlus.Dto.Well do
     def imprt(%{"Type" => "Ended", "Ended" => %{"Type" => "Remise"}}), do: {:ok, {:ended, :remise}}
     def imprt(%{"Type" => "Ended", "Ended" => %{"Type" => "Win", "Value" => "Black"}}), do: {:ok, {:ended, {:win, :black}}}
     def imprt(%{"Type" => "Ended", "Ended" => %{"Type" => "Win", "Value" => "White"}}), do: {:ok, {:ended, {:win, :white}}}
+    def imprt(%{"Type" => "Ended", "Ended" => %{"Type" => "RequestRematch", "Value" => "Black"}}) do
+      {:ok, {:ended, {:request_rematch, :black}}}
+    end
+    def imprt(%{"Type" => "Ended", "Ended" => %{"Type" => "RequestRematch", "Value" => "White"}}) do
+      {:ok, {:ended, {:request_rematch, :white}}}
+    end
     def imprt(_), do: {:error, "Failed to import DuelState"}
   end
 

@@ -2,6 +2,7 @@ defmodule ChessPlus.Flow.MovePiece do
   use ChessPlus.Wave
   alias ChessPlus.Well.Rules
   alias ChessPlus.Well.Duel
+  alias ChessPlus.Well.Duel.Piece
   alias ChessPlus.Well.Duel.Coordinate
   alias ChessPlus.Delta.SimulateRules
   alias ChessPlus.Result
@@ -20,12 +21,43 @@ defmodule ChessPlus.Flow.MovePiece do
     |> Option.from_list()
     |> Option.map(&Kernel.hd/1)
     |> Option.map(fn rule -> apply_move_rule(duel, rule, ampl) end)
-    |> Option.to_result()
+    |> Option.to_result("No rules to apply to satisfy movement order")
     |> Result.flatten()
     |> Result.map(fn {duel, waves} ->
       Duel.update!(id, fn _ -> duel end)
+      piece = Piece.id(piece)
+              |> Option.bind(fn p -> Duel.fetch_piece_by_id(duel, p) end)
+              |> Option.or_else(piece)
+
       [{:event, sender, {{:event, :piece_moved}, piece}} | waves]
     end)
+  end
+
+  defp apply_move_rule(
+    duel,
+    {:conquer_combo, %{target_offset: target_offset}} = rule,
+    %{piece: piece, from: from} = ampl)
+  do
+    maybe_other_coord = Coordinate.apply_offset(from, target_offset) |> Option.from_result()
+
+    ({:some, fn other_coord ->
+      Duel.increment_piece_move_count(duel, from)
+      |> Result.bind(fn duel -> SimulateRules.simulate_rule(duel, rule, {:some, piece}) end)
+      |> Result.map(fn duel ->
+        waves = Duel.map_duelists(duel, fn duelist ->
+          [
+            {:tcp, duelist, {{:piece, :conquer}, ampl}},
+            {:tcp, duelist, {{:piece, :remove}, other_coord}}
+          ]
+        end)
+        |> Enum.flat_map(&(&1))
+
+        {duel, waves}
+      end)
+    end}
+    <~> maybe_other_coord)
+    |> Option.to_result()
+    |> Result.flatten()
   end
 
   defp apply_move_rule(

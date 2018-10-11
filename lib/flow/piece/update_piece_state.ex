@@ -2,11 +2,14 @@ defmodule ChessPlus.Flow.Piece.UpdatePieceState do
   use ChessPlus.Wave
   alias ChessPlus.Well.Duel
   alias ChessPlus.Well.Duel.Piece
+  alias ChessPlus.Well.Duel.Buff
   alias ChessPlus.Well.Rules
   alias ChessPlus.Delta.SimulateRules
   alias ChessPlus.Delta.VerifyRules
+  alias ChessPlus.Delta.ApplyBuffs
   alias ChessPlus.Option
   alias ChessPlus.Result
+  import ChessPlus.Option, only: [<~>: 2]
 
   @impl(ChessPlus.Wave)
   def flow({{:event, :piece_moved}, piece}, %{duel: {:some, id}}) do
@@ -25,7 +28,6 @@ defmodule ChessPlus.Flow.Piece.UpdatePieceState do
     Duel.update(id, fn _ -> duel_result end)
 
     Result.bind(duel_result, fn duel ->
-      ChessPlus.Logger.warn("REDUCE")
       Enum.reduce(rules, {:ok, []}, fn
         {:promote, _}, {:ok, waves} ->
           Piece.id(piece)
@@ -36,10 +38,22 @@ defmodule ChessPlus.Flow.Piece.UpdatePieceState do
             end) ++ waves
           end)
           |> Option.to_result("Failed to report promoted piece")
+        {:add_buff_on_move, %{buff_id: buff_id}}, {:ok, waves} ->
+          waves = Duel.map_duelists(duel, fn duelist ->
+            {:tcp, duelist, {{:buffs, :update}, duel.buffs.active_buffs}}
+          end) ++ waves
+
+          ({:some, &Kernel.++/2}
+          <~> {:some, waves}
+          <~> Option.bind(Buff.find_active_buff(duel, buff_id), fn buff ->
+            ApplyBuffs.get_apply_waves(duel, buff)
+            |> Option.from_result()
+          end))
+          |> Option.or_else(waves)
+          |> Result.retn()
         _, waves -> waves
       end)
     end)
-    |> IO.inspect(label: "update piece state result")
   end
 
 end

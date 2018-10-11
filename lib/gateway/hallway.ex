@@ -22,8 +22,10 @@ defmodule ChessPlus.Gateway.Hallway do
       {:event, player, wave} -> flow([wave], player)
       _ -> {:error, "Invalid output"}
     end)
-    |> Result.unwrap()
-    |> Result.warn()
+    # TODO fix Udp and Tcp out return values to return proper results
+    #    |> IO.inspect(label: "downstream result to unwrap")
+    #    |> Result.unwrap()
+    #    |> Result.warn()
   end
 
   defp downstream({:error, error}, {:udp, sender}) do

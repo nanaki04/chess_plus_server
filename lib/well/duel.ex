@@ -43,6 +43,28 @@ defmodule ChessPlus.Well.Duel do
 
   @type rule :: Rules.rule
 
+  @type buff_type :: {:add_rule, %{rules: [number]}}
+
+  @type buff_duration :: {:turn, number}
+
+  @type buff :: %{
+    id: number,
+    type: buff_type,
+    duration: buff_duration
+  }
+
+  @type active_buff :: %{
+    id: number,
+    type: buff_type,
+    duration: buff_duration,
+    piece_id: number
+  }
+
+  @type buffs :: %{
+    active_buffs: [active_buff],
+    buffs: %{number => buff}
+  }
+
   @type duelist :: %{
     name: String.t,
     color: color,
@@ -96,6 +118,8 @@ defmodule ChessPlus.Well.Duel do
     | {:ended, :remise}
     | {:ended, {:win, :black}}
     | {:ended, {:win, :white}}
+    | {:ended, {:request_rematch, :black}}
+    | {:ended, {:request_rematch, :white}}
 
   @type duel :: %Duel{
     id: String.t,
@@ -104,7 +128,8 @@ defmodule ChessPlus.Well.Duel do
     rules: ChessPlus.Well.Rules.rules,
     win_conditions: [ChessPlus.Well.Rules.rule],
     duel_state: duel_state,
-    piece_templates: %{black: [piece_template], white: [piece_template]}
+    piece_templates: %{black: [piece_template], white: [piece_template]},
+    buffs: buffs
   }
 
   defstruct id: "",
@@ -113,7 +138,11 @@ defmodule ChessPlus.Well.Duel do
     rules: %{},
     win_conditions: [],
     duel_state: :paused,
-    piece_templates: %{black: [], white: []}
+    piece_templates: %{black: [], white: []},
+    buffs: %{
+      active_buffs: [],
+      buffs: []
+    }
 
   @impl(Guardian.Secret)
   def make_initial_state(id) do
@@ -416,6 +445,101 @@ defmodule ChessPlus.Well.Duel do
     end
   end
 
+  defmodule Buff do
+    alias ChessPlus.Well.Duel
+    alias ChessPlus.Option
+    alias ChessPlus.Result
+
+    @type buff :: Duel.buff
+    @type buff_type :: Duel.buff_type
+    @type buff_duration :: Duel.buff_duration
+    @type active_buff :: Duel.active_buff
+    @type buffs :: Duel.buffs
+    @type duel :: ChessPlus.Well.Duel.duel
+
+    @spec find_buff(duel, number) :: Option.option
+    def find_buff(%Duel{} = duel, id) do
+      duel.buffs.buffs[id]
+      |> Option.from_nullable()
+    end
+
+    @spec find_active_buff(duel, number) :: Option.option
+    def find_active_buff(%Duel{} = duel, id) do
+      Enum.find(duel.buffs.active_buffs, fn
+        %{id: ^id} -> true
+        _ -> false
+      end)
+      |> Option.from_nullable()
+    end
+
+    @spec find_active_buffs_by_piece_id(duel, number) :: [active_buff]
+    def find_active_buffs_by_piece_id(%Duel{} = duel, piece_id) do
+      Enum.filter(duel.buffs.active_buffs, fn
+        %{piece_id: ^piece_id} -> true
+        _ -> false
+      end)
+    end
+
+    @spec find_rules_added_by_buffs(duel, number) :: [number]
+    def find_rules_added_by_buffs(%Duel{} = duel, piece_id) do
+      Enum.filter(duel.buffs.active_buffs, fn
+        %{piece_id: ^piece_id, type: {:add_rule, %{rules: _}}} -> true
+        _ -> false
+      end)
+      |> Enum.flat_map(fn %{type: {_, %{rules: rules}}} -> rules end)
+    end
+
+    @spec update_buffs(duel, fun) :: Result.result
+    def update_buffs(%Duel{} = duel, update) do
+      %{duel | buffs: update.(duel.buffs)}
+      |> Result.retn()
+    end
+
+    @spec update_active_buffs(duel, fun) :: Result.result
+    def update_active_buffs(%Duel{} = duel, update) do
+      update_buffs(duel, fn buffs -> %{buffs | active_buffs: update.(buffs.active_buffs)} end)
+    end
+
+    @spec add_buff(duel, number, number) :: Result.result
+    def add_buff(%Duel{} = duel, buff_id, piece_id) do
+      find_buff(duel, buff_id)
+      |> Option.map(fn buff -> Map.put(buff, :piece_id, piece_id) end)
+      |> Option.to_result("Buff to add not found")
+      |> Result.bind(fn buff -> update_active_buffs(duel, &[buff | &1]) end)
+    end
+
+    @spec remove_buff(duel, number) :: Result.result
+    def remove_buff(%Duel{} = duel, id) do
+      update_active_buffs(duel, fn buffs ->
+        Enum.filter(buffs, fn
+          %{id: ^id} -> false
+          _ -> true
+        end)
+      end)
+    end
+
+    @spec remove_expired_buffs(duel) :: Result.result
+    def remove_expired_buffs(%Duel{} = duel) do
+      update_active_buffs(duel, fn buffs ->
+        Enum.filter(buffs, fn
+          %{duration: {:turn, duration}} -> duration >= 0
+          _ -> true
+        end)
+      end)
+    end
+
+    @spec decrement_turn_durations(duel) :: Result.result
+    def decrement_turn_durations(%Duel{} = duel) do
+      update_active_buffs(duel, fn buffs ->
+        Enum.map(buffs, fn
+          %{duration: {:turn, duration}} = buff -> %{buff | duration: {:turn, duration - 1}}
+          buff -> buff
+        end)
+      end)
+    end
+
+  end
+
   def update_duel(%{duel: {:some, id}}, update) do
     {:ok, Duel.update!(id, update)}
   end
@@ -540,7 +664,8 @@ defmodule ChessPlus.Well.Duel do
     |> fetch_rules()
   end
 
-  def fetch_piece_rules(%Duel{} = duel, {_, %{rules: rules}}) do
+  def fetch_piece_rules(%Duel{} = duel, {_, %{id: id, rules: rules}}) do
+    rules = rules ++ ChessPlus.Well.Duel.Buff.find_rules_added_by_buffs(duel, id)
     fetch_rules(duel)
     |> Rules.find_rules(rules)
   end
@@ -571,6 +696,7 @@ defmodule ChessPlus.Well.Duel do
         {:move, %{offset: rule_offset}} -> offset == {:ok, rule_offset}
         {:conquer, %{offset: rule_offset}} -> offset == {:ok, rule_offset}
         {:move_combo, %{my_movement: rule_offset}} -> offset == {:ok, rule_offset}
+        {:conquer_combo, %{my_movement: rule_offset}} -> offset == {:ok, rule_offset}
         _ -> false
       end)
     else
@@ -581,13 +707,23 @@ defmodule ChessPlus.Well.Duel do
   @spec find_rule_target_coord(duel, Rules.rule, Option.option) :: Option.option
   def find_rule_target_coord(%Duel{} = duel, {_, %{offset: offset}}, {:some, piece}) do
     Duel.Piece.find_piece_coordinate(duel, piece)
-    |> Option.map(fn coord -> Duel.Coordinate.apply_offset(coord, offset) end)
+    |> Option.bind(fn coord ->
+      Duel.Coordinate.apply_offset(coord, offset)
+      |> Option.from_result()
+    end)
+  end
+  def find_rule_target_coord(%Duel{} = duel, {_, %{target_offset: offset}}, {:some, piece}) do
+    Duel.Piece.find_piece_coordinate(duel, piece)
+    |> Option.bind(fn coord ->
+      Duel.Coordinate.apply_offset(coord, offset)
+      |> Option.from_result()
+    end)
   end
   def find_rule_target_coord(_, _, _), do: :none
 
   def find_rule_target(%Duel{} = duel, rule, piece) do
     find_rule_target_coord(duel, rule, piece)
-    |> Option.map(fn coord -> fetch_piece(duel, coord) end)
+    |> Option.bind(fn coord -> fetch_piece(duel, coord) end)
   end
 
   def map_duelists(%{duel: {:some, id}}, update) do
@@ -621,6 +757,10 @@ defmodule ChessPlus.Well.Duel do
       nil -> :none
       duelist -> {:some, duelist}
     end
+  end
+
+  def remove_player(duel, %{name: name}) do
+    %{duel | duelists: Enum.filter(duel.duelists, fn duelist -> duelist.name != name end)}
   end
 
   def is_full?(duel_id) when is_binary(duel_id) do
