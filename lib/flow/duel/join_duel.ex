@@ -5,16 +5,24 @@ defmodule ChessPlus.Flow.Duel.Join do
 
   @impl(ChessPlus.Wave)
   def flow({{:duelist, :join}, %{id: "any"}}, sender) do
-    ChessPlus.Well.OpenDuelRegistry.all()
+    waves = ChessPlus.Well.OpenDuelRegistry.all()
+    |> Enum.reverse() # TODO take newest to prevent hitting ghost games over and over, need to fix ghost games from happening in the first place
     |> Enum.reduce({:error, "No open duels available"}, fn
       id, {:error, _} ->
         join_duel(id, sender)
       _, {:ok, _} = result ->
         result
     end)
+
+    case waves do
+      {:error, _} ->
+        {:ok, [{:tcp, sender, {{:open_duels, :add}, %{duels: []}}}]}
+      waves ->
+        waves
+    end
   end
 
-  def flow({{:duelist, :join}, %{id: id}}, sender) do
+  def flow({{:duelist, :join}, %{name: id}}, sender) do
     verify_duel(id)
     <|> fn id -> join_duel(id, sender) end
   end

@@ -801,6 +801,12 @@ defmodule ChessPlus.Dto.Well do
     def export({:ended, :remise}), do: {:ok, %{"Type" => "Ended", "Ended" => %{"Type" => "Remise"}}}
     def export({:ended, {:win, :black}}), do: {:ok, %{"Type" => "Ended", "Ended" => %{"Type" => "Win", "Value" => "Black"}}}
     def export({:ended, {:win, :white}}), do: {:ok, %{"Type" => "Ended", "Ended" => %{"Type" => "Win", "Value" => "White"}}}
+    def export({:ended, {:request_rematch, :black}}) do
+      {:ok, %{"Type" => "Ended", "Ended" => %{"Type" => "RequestRematch", "Value" => "Black"}}}
+    end
+    def export({:ended, {:request_rematch, :white}}) do
+      {:ok, %{"Type" => "Ended", "Ended" => %{"Type" => "RequestRematch", "Value" => "White"}}}
+    end
     def export(_), do: {:error, "Failed to export duel_state"}
 
     @spec imprt(dto) :: Result.result
@@ -811,6 +817,12 @@ defmodule ChessPlus.Dto.Well do
     def imprt(%{"Type" => "Ended", "Ended" => %{"Type" => "Remise"}}), do: {:ok, {:ended, :remise}}
     def imprt(%{"Type" => "Ended", "Ended" => %{"Type" => "Win", "Value" => "Black"}}), do: {:ok, {:ended, {:win, :black}}}
     def imprt(%{"Type" => "Ended", "Ended" => %{"Type" => "Win", "Value" => "White"}}), do: {:ok, {:ended, {:win, :white}}}
+    def imprt(%{"Type" => "Ended", "Ended" => %{"Type" => "RequestRematch", "Value" => "Black"}}) do
+      {:ok, {:ended, {:request_rematch, :black}}}
+    end
+    def imprt(%{"Type" => "Ended", "Ended" => %{"Type" => "RequestRematch", "Value" => "White"}}) do
+      {:ok, {:ended, {:request_rematch, :white}}}
+    end
     def imprt(_), do: {:error, "Failed to import DuelState"}
   end
 

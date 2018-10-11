@@ -42,6 +42,10 @@ defmodule ChessPlus.Dto.Waves do
     <~> {:ok, duelist}
   end
 
+  def imprt(%{"Location" => %{"Domain" => "duelist", "Invocation" => "remove"}}) do
+    {:ok, {:duelist, :remove}}
+  end
+
   def imprt(%{"Location" => %{"Domain" => "tile", "Invocation" => "select"}, "Coordinate" => coordinate}) do
     {:ok, &{{:tile, :select}, %{coordinate: &1}}}
     <~> Well.Coordinate.imprt(coordinate)
@@ -83,6 +87,8 @@ defmodule ChessPlus.Dto.Waves do
   def imprt(%{"Location" => %{"Domain" => "duelist", "Invocation" => "propose_remise"}}), do: {:ok, {:duelist, :propose_remise}}
   def imprt(%{"Location" => %{"Domain" => "duelist", "Invocation" => "remise"}}), do: {:ok, {:duelist, :remise}}
   def imprt(%{"Location" => %{"Domain" => "duelist", "Invocation" => "refuse_remise"}}), do: {:ok, {:duelist, :refuse_remise}}
+  def imprt(%{"Location" => %{"Domain" => "duelist", "Invocation" => "request_rematch"}}), do: {:ok, {:duelist, :request_rematch}}
+  def imprt(%{"Location" => %{"Domain" => "duel", "Invocation" => "rematch"}}), do: {:ok, {:duel, :rematch}}
 
   def imprt(%{"Location" => %{"Domain" => d, "Invocation" => i}}), do: {:error, "Failed to import Wave: " <> d <> " : " <> i}
   def imprt(w), do: {:error, "Failed to import Wave: " <> Poison.encode!(w)}
@@ -189,12 +195,34 @@ defmodule ChessPlus.Dto.Waves do
     <~> Well.DuelState.export(amplitude)
   end
 
+  def export({{:duelist, :rematch} = location, amplitude}) do
+    {:ok, &%{"Location" => &1, "Duel" => &2, "Tiles" => &3, "TileSelections" => &4, "Pieces" => &5, "Rules" => &6, "Buffs" => &7}}
+    <~> export_location(location)
+    <~> Well.Duel.export(amplitude)
+    <~> Well.Tiles.export(amplitude.board.tiles)
+    <~> Well.TileSelections.export(amplitude.board.tiles)
+    <~> Well.Pieces.export(amplitude.board.tiles)
+    <~> Well.Rules.export(amplitude.rules)
+    <~> Well.Buffs.export(amplitude.buffs.active_buffs)
+  end
+
+  def export({{:duelist, :remove} = location, amplitude}) do
+    {:ok, &%{"Location" => &1, "Duelist" => &2}}
+    <~> export_location(location)
+    <~> Well.Duelist.export(amplitude)
+  end 
+
   def export({:duelist, :propose_remise} = location) do
     {:ok, &%{"Location" => &1}}
     <~> export_location(location)
   end
 
   def export({:duelist, :refuse_remise} = location) do
+    {:ok, &%{"Location" => &1}}
+    <~> export_location(location)
+  end
+
+  def export({:duelist, :request_rematch} = location) do
     {:ok, &%{"Location" => &1}}
     <~> export_location(location)
   end
