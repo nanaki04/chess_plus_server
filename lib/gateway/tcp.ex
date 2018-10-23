@@ -31,14 +31,14 @@ defmodule ChessPlus.Gateway.Tcp do
   def handle_info({:tcp, port, chunk}, %{socket: socket, chunks: chunks}) do
     chunks = Map.get_and_update(chunks, port, fn
       nil ->
-        case flow_upstream(chunk, port) do
+        case process_message(chunk, port) do
           :done -> :pop
-          _ -> {nil, chunk}
+          {:in_progress, chunk} -> {nil, chunk}
         end
       msg ->
-        case flow_upstream(msg <> chunk, port) do
+        case process_message(msg <> chunk, port) do
           :done -> :pop
-          _ -> {msg, msg <> chunk}
+          {:in_progress, chunk} -> {msg, chunk}
         end
     end)
     |> elem(1)
@@ -61,30 +61,40 @@ defmodule ChessPlus.Gateway.Tcp do
     :gen_tcp.close(socket)
   end
 
-  defp flow_upstream(message, port) do
-    case String.ends_with?(message, "\n") do
-      true ->
-        ((Poison.decode(String.slice(message, 0..-2))
-        <|> fn
-          waves when is_list(waves) ->
-            Enum.map(waves, &WaveDto.imprt/1)
-          wave ->
-            [WaveDto.imprt(wave)]
-        end)
-        ~>> (&Result.unwrap/1)
-        <|> fn waves -> Hallway.flow(waves, {:tcp, %{port: port}}) end)
-        |> Result.warn()
-
-        :done
-      false ->
-        :in_progress
-    end
-  end
-
   def handle_call({:send, wave, %{tcp_port: port}}, _, state) do
     ChessPlus.Logger.log(wave)
     # File.write("log.json", wave)
     {:reply, :gen_tcp.send(port, wave), state}
+  end
+
+  defp process_message(message, port) do
+    chunks = String.split(message, "\n")
+             |> Enum.reverse
+
+    chunks
+    |> tl
+    |> Enum.reverse
+    |> Enum.map(fn chunk -> flow_upstream(chunk, port) end)
+
+    chunks
+    |> hd
+    |> (fn
+      "" -> :done
+      chunk -> {:in_progress, chunk}
+    end).()
+  end
+
+  defp flow_upstream(message, port) do
+    ((Poison.decode(message)
+    <|> fn
+      waves when is_list(waves) ->
+        Enum.map(waves, &WaveDto.imprt/1)
+      wave ->
+        [WaveDto.imprt(wave)]
+    end)
+    ~>> (&Result.unwrap/1)
+    <|> fn waves -> Hallway.flow(waves, {:tcp, %{port: port}}) end)
+    |> Result.warn()
   end
 
   def handle_cast(:accept, %{socket: socket} = state) do
