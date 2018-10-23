@@ -1,6 +1,7 @@
 defmodule ChessPlus.Flow.Duel.Join do
   use ChessPlus.Wave
   alias ChessPlus.Well.Duel
+  alias ChessPlus.Result
   import ChessPlus.Result, only: [<|>: 2]
 
   @impl(ChessPlus.Wave)
@@ -9,7 +10,8 @@ defmodule ChessPlus.Flow.Duel.Join do
     |> Enum.reverse() # TODO take newest to prevent hitting ghost games over and over, need to fix ghost games from happening in the first place
     |> Enum.reduce({:error, "No open duels available"}, fn
       id, {:error, _} ->
-        join_duel(id, sender)
+        verify_player(id, sender)
+        |> Result.bind(fn {id, sender} -> join_duel(id, sender) end)
       _, {:ok, _} = result ->
         result
     end)
@@ -24,7 +26,8 @@ defmodule ChessPlus.Flow.Duel.Join do
 
   def flow({{:duelist, :join}, %{name: id}}, sender) do
     verify_duel(id)
-    <|> fn id -> join_duel(id, sender) end
+    |> Result.bind(fn id -> verify_player(id, sender) end)
+    |> Result.map(fn {id, sender} -> join_duel(id, sender) end)
   end
 
   defp verify_duel(id) do
@@ -32,6 +35,14 @@ defmodule ChessPlus.Flow.Duel.Join do
       {:ok, id}
     else
       {:error, "Duel does not exist"}
+    end
+  end
+
+  defp verify_player(duel_id, player) do
+    duel = Duel.fetch(duel_id)
+    case Duel.fetch_player(duel, player) do
+      :none -> {:ok, {duel_id, player}}
+      _ -> {:error, "Player already joined duel"}
     end
   end
 
